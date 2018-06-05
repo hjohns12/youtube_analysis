@@ -10,7 +10,7 @@ import json
 import math
 
 root = "https://www.googleapis.com/youtube/v3"
-key = 'AIzaSyAEm8IheALDTMiwyqe0yCnXO0UICvRNoTA'
+key = ''
 channelID = 'UCvsye7V9psc-APX6wV1twLg'
 
 http_endpoint = ("{0}/search"
