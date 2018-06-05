@@ -4,6 +4,7 @@ author: "Hope Johnson"
 date: "May 24 2018"
 output:
   html_document:
+    keep_md: true
     toc: true
     toc_depth: 2
     toc_float: true
