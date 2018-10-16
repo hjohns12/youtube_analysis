@@ -1,13 +1,13 @@
 ---
 title: 'Features of Far-right Influences on YouTube'
-author: "Hope Johnson"
+author: "Hope Johnson <br>"
 date: "`r format(Sys.time(), '%d %B %Y')`"
-output:
-  md_document:
-    toc: true
-    variant: markdown_github
-    toc_depth: 1
-#output: github_document
+# output:
+#   md_document:
+#     toc: true
+#     variant: markdown_github
+#     toc_depth: 1
+output: github_document
 ---
 
 ```{r libraries, message=FALSE, warning=FALSE}
@@ -17,19 +17,23 @@ library(stringr)
 library(lubridate)
 library(magrittr)
 library(skimr)
+```
+
+```{r echo = FALSE}
 options(width = 120)
+skim_with(numeric = list(hist = NULL))
 ```
 
 # Opening
 
 This work was created to support the Media Manipulation Initiative (MMI) at Data & Society. The goal of the the Media Manipulation Initiative is to examine how different groups use the participatory culture of the internet to turn the strengths of a free society into vulnerabilities, ultimately threatening expressive freedoms and civil rights. For this task, reserachers at the Media Manipulation Initiative are interested in how YouTube influences are attacking the mainstream media. One of the most active influencers is Alex Jones, and his media network InfoWars. By taking a deep dive into Alex Jones' YouTube videos, the research team will learn how discourse related to the mainstream media differs from other content uploaded by Alex Jones.
 
-What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research. 
+What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
 
-**add some outcomes**
+*add some outcomes*
 
 
-# Munge data 
+# Munge data
 
 I am targeting the title, description, tags, number of likes, number of dislikes, and number of views for each video uploaded to the Alex Jones YouTube channel during the specified three-year time period. The video statistics data arrives as a .json file, which for a single video appears like the chunk below.
 
@@ -83,13 +87,13 @@ I am targeting the title, description, tags, number of likes, number of dislikes
     }
 ```
 
-JSON stands for JavaScript Object Notation, and this file format is commonly used to store data on the web. For data analysis and visualization, JSON is not ideal. As an initial step, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row. 
+JSON stands for JavaScript Object Notation, and this file format is commonly used to store data on the web. For data analysis and visualization, JSON is not ideal. As an initial step, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row.
 
-If the code below means nothing to you, don't worry! I'm mostly keeping these helper functions here in order to remember what I did later on. The main takeaway is that data munging gets us from the nested, concave format shown above to a rectangular, tidy one for easy analysis. 
+If the code below means nothing to you, don't worry! I'm mostly keeping these helper functions here in order to remember what I did later on. The main takeaway is that data munging gets us from the nested, concave format shown above to a rectangular, tidy one for easy analysis.
 
 ```{r helper_function}
 # For more on .json file flattening, see:
-# https://stackoverflow.com/questions/35444968/read-json-file-into-a-data-frame-without-nested-lists 
+# https://stackoverflow.com/questions/35444968/read-json-file-into-a-data-frame-without-nested-lists
 
 col_fixer <- function(x, vec2col = FALSE) {
   if (!is.list(x[[1]])) {
@@ -118,7 +122,7 @@ Flattener <- function(indf, vec2col = FALSE) {
 
 #' @return flattened video item with a column for each nested piece of information from json
 make_tidy <- function(item){
-  colNames <- c("categoryId", "channelId", "channelTitle", "defaultAudioLanguage", "description", 
+  colNames <- c("categoryId", "channelId", "channelTitle", "defaultAudioLanguage", "description",
                 "liveBroadcastContent", "localized", "tags", "publishedAt", "thumbnails", "title") # only keep columns I care about
   item <- data.frame(item)
   { if (length(colNames) != length(names(item$snippet))) {
@@ -128,26 +132,26 @@ make_tidy <- function(item){
       item$snippet <- item$snippet[colNames]  
       item$snippet[ ,order(names(item$snippet))]
       }  
-  } 
+  }
   Flattener(item) %>%
   as_data_frame()
 }
 
 #' @return clean, flat dataframe from .json file where each unique video is a row
 clean_full_dat <- function(file){
-  df <- fromJSON(file) %>% 
+  df <- fromJSON(file) %>%
   pull(items) %>%
-  lapply(make_tidy) %>% 
+  lapply(make_tidy) %>%
   bind_rows() %>%
   select(-(contains("thumbnails"))) %>%
-  rename_(.dots = setNames(names(.), 
-                           gsub("snippet.","", names(.)))) %>% 
-  rename_(.dots = setNames(names(.), gsub("statistics.","", names(.)))) %>% 
+  rename_(.dots = setNames(names(.),
+                           gsub("snippet.","", names(.)))) %>%
+  rename_(.dots = setNames(names(.), gsub("statistics.","", names(.)))) %>%
   mutate_at(vars(contains("Count")), funs(as.numeric)) %>%
   mutate(publishedAt = ymd_hms(publishedAt),
          year = year(publishedAt)) %>%
     # the etag has something to do with the video being updated (possibly, edited)
-    select(-etag) %>% 
+    select(-etag) %>%
     # keep the video observation with the highest viewCount (likely the most up-to-date)
     arrange(id, desc(viewCount)) %>%
     group_by(id) %>%
@@ -157,10 +161,10 @@ clean_full_dat <- function(file){
 }
 ```
 
-GitHub doesn't like it when I store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email. 
+GitHub doesn't like it when users store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email.
 
 ```{r convert_dat, warning=FALSE, error=FALSE, message=FALSE, eval=FALSE}
-full_dat <- clean_full_dat("../data/vid_details.json") 
+full_dat <- clean_full_dat("../data/vid_details.json")
 #write_rds(full_dat, "data/video_metadata.rds") # .rds for type persistence
 ```
 
@@ -168,21 +172,59 @@ full_dat <- clean_full_dat("../data/vid_details.json")
 full_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata.csv"))
 ```
 
-`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe `r nrow(full_dat)` videos in total. Each video has `r length(full_dat)` variables of interest (i.e. features, covariates, or inputs) associated with it.
+`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe `r nrow(full_dat)` videos in total. Each video has `r length(full_dat)` variables of interest (i.e. features, covariates, or inputs) associated with it. Below are summary statistics for numeric variables.
 
-```{r}
-names(full_dat)
-skim(full_dat)
+```{r full_dat summary statistics, results='asis', echo = FALSE}
+skim(full_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount, year) %>% skimr::kable(caption = "Summary statistics for all videos")
 ```
 
+## Date Published
+
+Although the publication date for the video data spans from the beginning of 2015 and mid-2018, the median video date is December 4th, 2017. This suggests that Alex Jones increased his rate of video publication over time. The plot below shows videos published over time, where each dot represents a single video uploaded.
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+break.vec<-c(seq(from=as.Date("2015-01-08"), to=as.Date("2018-05-03"), by = "3 month"))
+
+ggplot(full_dat, aes(as.Date(publishedAt))) + 
+ geom_dotplot(stackdir = "center", stackratio = .2, alpha = .3,
+              method = "histodot", binwidth = 40) + 
+ scale_x_date(date_labels = "%b %y",
+              breaks = break.vec) +
+ scale_y_continuous(breaks = NULL) + 
+ labs(x = "",  y = "", title = "Videos published by Alex Jones",
+      subtitle = "January 2015 - May 2018")
+```
+
+## Video Tags
+
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 71 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Alex Jones", "Infowars", "Police State", "Martial Law", and "Nightly News". I only show tags with greater than 25 occurences in the videos. 
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
+  reduce(., `rbind`) %>%
+  as.tibble() %>%
+  gather() %>%
+  mutate(valClean = trimws(value)) # match same tags (except spaces added)
+
+tagTally <- sepTags %>%
+  count(valClean, sort = TRUE) %>%
+  filter(n > 25, valClean != "0")
+```
+
+```{r}
+ggplot(tagTally, aes(reorder(valClean, -n), n)) +
+  geom_bar(stat = "identity") + 
+  labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 ## Filter to media manipulation-related videos
 
-The reserach team is interested in gathering insights from (1) the full collection of videos, and (2) a subset of videos with tags identified as relevant to discourse against mainstream media. 
+The reserach team is interested in gathering insights from (1) the full collection of videos, and (2) a subset of videos with tags identified as relevant to discourse against mainstream media.
 
-To create a dataset with only the words identified by researchers as relevant, I perform a search of the following attributes of each video: tags, description, and title. If any of the relevant terms show up in any of those three items, I save the video to a secondary dataframe, `ms_dat`. Note that any escape characters attached to relevant_terms (e.g., "buzzfeed/n", indicating a new paragraph) will still be found in the search function. 
+To create a dataset with only the words identified by researchers as relevant, I perform a search of the following attributes of each video: tags, description, and title. If any of the relevant terms show up in any of those three items, I save the video to a secondary dataframe, `ms_dat`. Note that any escape characters attached to relevant_terms (e.g., "buzzfeed/n", indicating a new paragraph) will still be found in the search function.
 
-```{r filter_data}
+```{r filter_data, warning = FALSE, error = FALSE}
 relevant_terms <- c("Mainstream media",
               "MSM",
               "CNN",
@@ -209,13 +251,13 @@ subset_by_description <- mainstream_filter(full_dat, "description")
 subset_by_title <- mainstream_filter(full_dat, "title")
 ```
 
-Below, I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title. Many of the videos in these three dataframes are repetitions of one another. I perform an operation, `distinct`, to only keep unique videos in the mainstream subset. 
+Below, I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title. 
 
-```{r make_ms_dat, eval=FALSE}
+```{r make_ms_dat, eval=FALSE, warning=FALSE, error=FALSE}
 ms_dat <- subset_by_description %>%
   bind_rows(subset_by_tags) %>%
   bind_rows(subset_by_title) %>%
-  distinct() 
+  distinct()
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
 
@@ -224,33 +266,31 @@ ms_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "you
 ```
 
 
-# Exploratory Analysis 
+# Exploratory Analysis
 
-In the interest of time, I limit my exploration and analysis to the numeric variables. Below, I print out summary information for the numeric variables available to us. 
+In the interest of time, I limit my exploration and analysis to the numeric variables. Below, I print out summary information for the numeric variables available to us.
 
-The table below provides **summary statistics for videos with mainstream-media tags**. 
+The table below provides **summary statistics for videos with mainstream-media tags**.
 
 
 
-In contrast, the table below provides **summary statistics for all videos**. 
+In contrast, the table below provides **summary statistics for all videos**.
 
 
 
 Based on the two tables, I immediately notice a few things:
 
 1. `favoriteCount` doesn't provide any information.
-2. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset. 
-3. The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508. 
+2. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
+3. The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
 
 ```{r summarize, results='asis', echo = FALSE}
 skim(ms_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount) %>% skimr::kable(caption = "Summary statistics for mainstream-related video subset")
-
-skim(full_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount) %>% skimr::kable(caption = "Summary statistics for all videos")
 ```
 
 ### Proportion of likes/dislikes to views
 
-The summary tables above warrant an exploratory comparison of viewer engagement. With the data available, we quantify viewer engagement with the proportion of likes/dislikes to views. A higher proportion of dis/likes to views suggests increased audience engagement and responsiveness. I first reshape the data to facilitate such a comparison, and then present results in a density plot. 
+The summary tables above warrant an exploratory comparison of viewer engagement. With the data available, we quantify viewer engagement with the proportion of likes/dislikes to views. A higher proportion of dis/likes to views suggests increased audience engagement and responsiveness. I first reshape the data to facilitate such a comparison, and then present results in a density plot.
 
 ```{r add_props}
 toPlot <- full_dat %>%
@@ -262,28 +302,28 @@ toPlot <- full_dat %>%
          Dislikes = dislikeCount/viewCount,
          Comments = commentCount/viewCount) %>%
   select(main_stream, Likes, Dislikes, Comments) %>%
-  gather(var, prop, Likes:Comments) 
+  gather(var, prop, Likes:Comments)
 
-ggplot(toPlot) + 
-  geom_density(aes(x=prop, y=..scaled.., fill = main_stream), alpha = 0.5) + 
-  facet_wrap(~var) + 
-  labs(x = "Proportion of engagement type to views", 
-       y = "Scaled density", 
-       title = "Viewer engagement by video type") + 
-  theme(legend.position = "bottom", legend.direction = "horizontal") + 
+ggplot(toPlot) +
+  geom_density(aes(x=prop, y=..scaled.., fill = main_stream), alpha = 0.5) +
+  facet_wrap(~var) +
+  labs(x = "Proportion of engagement type to views",
+       y = "Scaled density",
+       title = "Viewer engagement by video type") +
+  theme(legend.position = "bottom", legend.direction = "horizontal") +
   scale_fill_discrete("")
 
 ```
 
-The y-axis on this plot is a scaled density because the sample sizes are different for videos with mainstream-tags and those without. The x-axis shows the proportion of the engagement type (comments, dislikes, likes) to the number of views for each video. The shading indicates whether the video had a mainstream tag or not. 
+The y-axis on this plot is a scaled density because the sample sizes are different for videos with mainstream-tags and those without. The x-axis shows the proportion of the engagement type (comments, dislikes, likes) to the number of views for each video. The shading indicates whether the video had a mainstream tag or not.
 
 The pink tail to the right within the "Likes" cell suggests that viewer engagement is higher for videos with mainstream tags than those without. This illuminates a potential motivation of mainstream media-related content creation. Previous research suggests that malicious actors creating and spreading disinformation, propaganda, and/or fake news are usually motivated by one or more of the following categories: ideology, money, and/or status or attention [0-1]. The differential in likes and views suggests that videos related to mainstream media garner more attention than the average video from the Alex Jones channel.   
 
 # Discussion
 
-Add major takeaways here 
+Add major takeaways here
 
-In future work, I will implement an in-depth analysis of the `description` text for each video. 
+In future work, I will implement an in-depth analysis of the `description` text for each video.
 
 # Closing
 
@@ -293,7 +333,6 @@ version
 
 # Sources
 
-[0] Alice Marwick and Rebecca Lewis, "Media Manipulation and Disinformation Online" (Data & Society Research Institute, May 17, 2017), https://datasociety.net/pubs/oh/DataAndSociety_MediaManipulationAndDisinformationOnline.pdf. 
+[0] Alice Marwick and Rebecca Lewis, "Media Manipulation and Disinformation Online" (Data & Society Research Institute, May 17, 2017), https://datasociety.net/pubs/oh/DataAndSociety_MediaManipulationAndDisinformationOnline.pdf.
 
 [1] Robyn Caplan and danah boyd, "Mediation, Automation, Power" (Data & Society Research Institute, May 15, 2016), https://datasociety.net/pubs/ap/MediationAutomationPower_2016.pdf.
-

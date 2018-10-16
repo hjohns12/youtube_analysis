@@ -1,9 +1,7 @@
--   [Opening](#opening)
--   [Munge data](#munge-data)
--   [Exploratory Analysis](#exploratory-analysis)
--   [Discussion](#discussion)
--   [Closing](#closing)
--   [Sources](#sources)
+Features of Far-right Influences on YouTube
+================
+Hope Johnson <br>
+16 October 2018
 
 ``` r
 library(tidyverse)
@@ -12,7 +10,6 @@ library(stringr)
 library(lubridate)
 library(magrittr)
 library(skimr)
-options(width = 120)
 ```
 
 Opening
@@ -22,7 +19,7 @@ This work was created to support the Media Manipulation Initiative (MMI) at Data
 
 What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
 
-**add some outcomes**
+*add some outcomes*
 
 Munge data
 ==========
@@ -85,7 +82,7 @@ If the code below means nothing to you, don't worry! I'm mostly keeping these he
 
 ``` r
 # For more on .json file flattening, see:
-# https://stackoverflow.com/questions/35444968/read-json-file-into-a-data-frame-without-nested-lists 
+# https://stackoverflow.com/questions/35444968/read-json-file-into-a-data-frame-without-nested-lists
 
 col_fixer <- function(x, vec2col = FALSE) {
   if (!is.list(x[[1]])) {
@@ -114,7 +111,7 @@ Flattener <- function(indf, vec2col = FALSE) {
 
 #' @return flattened video item with a column for each nested piece of information from json
 make_tidy <- function(item){
-  colNames <- c("categoryId", "channelId", "channelTitle", "defaultAudioLanguage", "description", 
+  colNames <- c("categoryId", "channelId", "channelTitle", "defaultAudioLanguage", "description",
                 "liveBroadcastContent", "localized", "tags", "publishedAt", "thumbnails", "title") # only keep columns I care about
   item <- data.frame(item)
   { if (length(colNames) != length(names(item$snippet))) {
@@ -124,26 +121,26 @@ make_tidy <- function(item){
       item$snippet <- item$snippet[colNames]  
       item$snippet[ ,order(names(item$snippet))]
       }  
-  } 
+  }
   Flattener(item) %>%
   as_data_frame()
 }
 
 #' @return clean, flat dataframe from .json file where each unique video is a row
 clean_full_dat <- function(file){
-  df <- fromJSON(file) %>% 
+  df <- fromJSON(file) %>%
   pull(items) %>%
-  lapply(make_tidy) %>% 
+  lapply(make_tidy) %>%
   bind_rows() %>%
   select(-(contains("thumbnails"))) %>%
-  rename_(.dots = setNames(names(.), 
-                           gsub("snippet.","", names(.)))) %>% 
-  rename_(.dots = setNames(names(.), gsub("statistics.","", names(.)))) %>% 
+  rename_(.dots = setNames(names(.),
+                           gsub("snippet.","", names(.)))) %>%
+  rename_(.dots = setNames(names(.), gsub("statistics.","", names(.)))) %>%
   mutate_at(vars(contains("Count")), funs(as.numeric)) %>%
   mutate(publishedAt = ymd_hms(publishedAt),
          year = year(publishedAt)) %>%
     # the etag has something to do with the video being updated (possibly, edited)
-    select(-etag) %>% 
+    select(-etag) %>%
     # keep the video observation with the highest viewCount (likely the most up-to-date)
     arrange(id, desc(viewCount)) %>%
     group_by(id) %>%
@@ -153,60 +150,75 @@ clean_full_dat <- function(file){
 }
 ```
 
-GitHub doesn't like it when I store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email.
+GitHub doesn't like it when users store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email.
 
 ``` r
-full_dat <- clean_full_dat("../data/vid_details.json") 
+full_dat <- clean_full_dat("../data/vid_details.json")
 #write_rds(full_dat, "data/video_metadata.rds") # .rds for type persistence
 ```
 
-`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe 506 videos in total. Each video has 19 variables of interest (i.e. features, covariates, or inputs) associated with it.
+`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe 506 videos in total. Each video has 19 variables of interest (i.e. features, covariates, or inputs) associated with it. Below are summary statistics for numeric variables.
+
+Skim summary statistics
+n obs: 506
+n variables: 19
+
+Variable type: integer
+
+|    variable   | missing | complete |  n  |    mean   |     sd    |  p0  |    p25   |  p50  |    p75   |   p100  |                               hist                               |
+|:-------------:|:-------:|:--------:|:---:|:---------:|:---------:|:----:|:--------:|:-----:|:--------:|:-------:|:----------------------------------------------------------------:|
+|  commentCount |    0    |    506   | 506 |  1993.57  |  5781.52  |  19  |   315.5  |  610  |   1622   |  92533  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|  dislikeCount |    0    |    506   | 506 |   638.5   |   3189.8  |   4  |    37    |  89.5 |  291.25  |  57228  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+| favoriteCount |    0    |    506   | 506 |     0     |     0     |   0  |     0    |   0   |     0    |    0    | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
+|   likeCount   |    0    |    506   | 506 |  4508.17  |  8716.95  |  107 |   885.5  |  1913 |   4930   |  122859 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|   viewCount   |    0    |    506   | 506 | 226621.85 | 526681.42 | 4518 | 24896.25 | 55635 | 177095.5 | 6756754 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|      year     |    0    |    506   | 506 |  2017.09  |    0.92   | 2015 |  2016.25 |  2017 |   2018   |   2018  | <U+2581><U+2581><U+2583><U+2581><U+2581><U+2587><U+2581><U+2587> |
+
+Date Published
+--------------
+
+Although the publication date for the video data spans from the beginning of 2015 and mid-2018, the median video date is December 4th, 2017. This suggests that Alex Jones increased his rate of video publication over time. The plot below shows videos published over time, where each dot represents a single video uploaded.
 
 ``` r
-names(full_dat)
+break.vec<-c(seq(from=as.Date("2015-01-08"), to=as.Date("2018-05-03"), by = "3 month"))
+
+ggplot(full_dat, aes(as.Date(publishedAt))) + 
+ geom_dotplot(stackdir = "center", stackratio = .2, alpha = .3,
+              method = "histodot", binwidth = 40) + 
+ scale_x_date(date_labels = "%b %y",
+              breaks = break.vec) +
+ scale_y_continuous(breaks = NULL) + 
+ labs(x = "",  y = "", title = "Videos published by Alex Jones",
+      subtitle = "January 2015 - May 2018")
 ```
 
-    ##  [1] "id"                    "kind"                  "categoryId"            "channelId"            
-    ##  [5] "channelTitle"          "defaultAudioLanguage"  "description"           "liveBroadcastContent" 
-    ##  [9] "publishedAt"           "title"                 "localized.description" "localized.title"      
-    ## [13] "commentCount"          "dislikeCount"          "favoriteCount"         "likeCount"            
-    ## [17] "viewCount"             "tags"                  "year"
+![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-4-1.png)
+
+Video Tags
+----------
+
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 71 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Alex Jones", "Infowars", "Police State", "Martial Law", and "Nightly News". I only show tags with greater than 25 occurences in the videos.
 
 ``` r
-skim(full_dat)
+sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
+  reduce(., `rbind`) %>%
+  as.tibble() %>%
+  gather() %>%
+  mutate(valClean = trimws(value)) # match same tags (except spaces added)
+
+tagTally <- sepTags %>%
+  count(valClean, sort = TRUE) %>%
+  filter(n > 25, valClean != "0")
 ```
 
-    ## Skim summary statistics
-    ##  n obs: 506 
-    ##  n variables: 19 
-    ## 
-    ## Variable type: character 
-    ##               variable missing complete   n min  max empty n_unique
-    ##              channelId       0      506 506  24   24     0        1
-    ##           channelTitle       0      506 506  22   22     0        1
-    ##   defaultAudioLanguage      70      436 506   2    5     0        2
-    ##            description       6      500 506  17 3570     0      451
-    ##                     id       0      506 506  11   11     0      506
-    ##                   kind       0      506 506  13   13     0        1
-    ##   liveBroadcastContent       0      506 506   4    4     0        1
-    ##  localized.description       6      500 506  17 3570     0      451
-    ##        localized.title       0      506 506  16  100     0      506
-    ##                   tags       0      506 506   1  538     0       99
-    ##                  title       0      506 506  16  100     0      506
-    ## 
-    ## Variable type: integer 
-    ##       variable missing complete   n      mean        sd   p0      p25     p50       p75    p100     hist
-    ##     categoryId       0      506 506     24.75      1.04   19    25       25       25         29 <U+2581><U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581>
-    ##   commentCount       0      506 506   1993.57   5781.52   19   315.5    610     1622      92533 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
-    ##   dislikeCount       0      506 506    638.5    3189.8     4    37       89.5    291.25   57228 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
-    ##  favoriteCount       0      506 506      0         0       0     0        0        0          0 <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
-    ##      likeCount       0      506 506   4508.17   8716.95  107   885.5   1913     4930     122859 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
-    ##      viewCount       0      506 506 226621.85 526681.42 4518 24896.25 55635   177095.5  6756754 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
-    ##           year       0      506 506   2017.09      0.92 2015  2016.25  2017     2018       2018 <U+2581><U+2581><U+2583><U+2581><U+2581><U+2587><U+2581><U+2587>
-    ## 
-    ## Variable type: POSIXct 
-    ##     variable missing complete   n        min        max     median n_unique
-    ##  publishedAt       0      506 506 2015-01-08 2018-05-03 2017-12-04      506
+``` r
+ggplot(tagTally, aes(reorder(valClean, -n), n)) +
+  geom_bar(stat = "identity") + 
+  labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-6-1.png)
 
 Filter to media manipulation-related videos
 -------------------------------------------
@@ -242,13 +254,13 @@ subset_by_description <- mainstream_filter(full_dat, "description")
 subset_by_title <- mainstream_filter(full_dat, "title")
 ```
 
-Below, I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title. Many of the videos in these three dataframes are repetitions of one another. I perform an operation, `distinct`, to only keep unique videos in the mainstream subset.
+Below, I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title.
 
 ``` r
 ms_dat <- subset_by_description %>%
   bind_rows(subset_by_tags) %>%
   bind_rows(subset_by_title) %>%
-  distinct() 
+  distinct()
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
 
@@ -291,26 +303,13 @@ n variables: 20
 
 Variable type: integer
 
-|      variable     | missing | complete |  n  |   mean  |     sd    |  p0  |  p25  |  p50  |   p75  |  p100 |                               hist                               |
-|:-----------------:|:-------:|:--------:|:---:|:-------:|:---------:|:----:|:-----:|:-----:|:------:|:-----:|:----------------------------------------------------------------:|
-|    commentCount   |    0    |    125   | 125 |  1563.2 |   2502.8  |  19  |  317  |  689  |  2084  | 20858 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|    dislikeCount   |    0    |    125   | 125 |  844.89 |  5165.73  |   4  |   38  |   97  |   342  | 57228 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|   favoriteCount   |    0    |    125   | 125 |    0    |     0     |   0  |   0   |   0   |    0   |   0   | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
-|     likeCount     |    0    |    125   | 125 | 4854.27 |  6418.85  |  130 |  969  |  1944 |  6827  | 39234 | <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|     viewCount     |    0    |    125   | 125 |  2e+05  | 383485.94 | 4518 | 26729 | 56265 | 228781 | 3e+06 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-| Skim summary stat |  istics |          |     |         |           |      |       |       |        |       |                                                                  |
-|     n obs: 506    |         |          |     |         |           |      |       |       |        |       |                                                                  |
-|  n variables: 19  |         |          |     |         |           |      |       |       |        |       |                                                                  |
-
-Variable type: integer
-
-|    variable   | missing | complete |  n  |    mean   |     sd    |  p0  |    p25   |  p50  |    p75   |   p100  |                               hist                               |
-|:-------------:|:-------:|:--------:|:---:|:---------:|:---------:|:----:|:--------:|:-----:|:--------:|:-------:|:----------------------------------------------------------------:|
-|  commentCount |    0    |    506   | 506 |  1993.57  |  5781.52  |  19  |   315.5  |  610  |   1622   |  92533  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|  dislikeCount |    0    |    506   | 506 |   638.5   |   3189.8  |   4  |    37    |  89.5 |  291.25  |  57228  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-| favoriteCount |    0    |    506   | 506 |     0     |     0     |   0  |     0    |   0   |     0    |    0    | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
-|   likeCount   |    0    |    506   | 506 |  4508.17  |  8716.95  |  107 |   885.5  |  1913 |   4930   |  122859 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|   viewCount   |    0    |    506   | 506 | 226621.85 | 526681.42 | 4518 | 24896.25 | 55635 | 177095.5 | 6756754 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|    variable   | missing | complete |  n  |   mean  |     sd    |  p0  |  p25  |  p50  |   p75  |  p100 |                               hist                               |
+|:-------------:|:-------:|:--------:|:---:|:-------:|:---------:|:----:|:-----:|:-----:|:------:|:-----:|:----------------------------------------------------------------:|
+|  commentCount |    0    |    125   | 125 |  1563.2 |   2502.8  |  19  |  317  |  689  |  2084  | 20858 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|  dislikeCount |    0    |    125   | 125 |  844.89 |  5165.73  |   4  |   38  |   97  |   342  | 57228 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+| favoriteCount |    0    |    125   | 125 |    0    |     0     |   0  |   0   |   0   |    0   |   0   | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
+|   likeCount   |    0    |    125   | 125 | 4854.27 |  6418.85  |  130 |  969  |  1944 |  6827  | 39234 | <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|   viewCount   |    0    |    125   | 125 |  2e+05  | 383485.94 | 4518 | 26729 | 56265 | 228781 | 3e+06 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
 
 ### Proportion of likes/dislikes to views
 
@@ -326,19 +325,19 @@ toPlot <- full_dat %>%
          Dislikes = dislikeCount/viewCount,
          Comments = commentCount/viewCount) %>%
   select(main_stream, Likes, Dislikes, Comments) %>%
-  gather(var, prop, Likes:Comments) 
+  gather(var, prop, Likes:Comments)
 
-ggplot(toPlot) + 
-  geom_density(aes(x=prop, y=..scaled.., fill = main_stream), alpha = 0.5) + 
-  facet_wrap(~var) + 
-  labs(x = "Proportion of engagement type to views", 
-       y = "Scaled density", 
-       title = "Viewer engagement by video type") + 
-  theme(legend.position = "bottom", legend.direction = "horizontal") + 
+ggplot(toPlot) +
+  geom_density(aes(x=prop, y=..scaled.., fill = main_stream), alpha = 0.5) +
+  facet_wrap(~var) +
+  labs(x = "Proportion of engagement type to views",
+       y = "Scaled density",
+       title = "Viewer engagement by video type") +
+  theme(legend.position = "bottom", legend.direction = "horizontal") +
   scale_fill_discrete("")
 ```
 
-![](munge-and-analyze_files/figure-markdown_github/add_props-1.png)
+![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/add_props-1.png)
 
 The y-axis on this plot is a scaled density because the sample sizes are different for videos with mainstream-tags and those without. The x-axis shows the proportion of the engagement type (comments, dislikes, likes) to the number of views for each video. The shading indicates whether the video had a mainstream tag or not.
 
