@@ -157,68 +157,7 @@ full_dat <- clean_full_dat("../data/vid_details.json")
 #write_rds(full_dat, "data/video_metadata.rds") # .rds for type persistence
 ```
 
-`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe 506 videos in total. Each video has 19 variables of interest (i.e. features, covariates, or inputs) associated with it. Below are summary statistics for numeric variables.
-
-Skim summary statistics
-n obs: 506
-n variables: 19
-
-Variable type: integer
-
-|    variable   | missing | complete |  n  |    mean   |     sd    |  p0  |    p25   |  p50  |    p75   |   p100  |                               hist                               |
-|:-------------:|:-------:|:--------:|:---:|:---------:|:---------:|:----:|:--------:|:-----:|:--------:|:-------:|:----------------------------------------------------------------:|
-|  commentCount |    0    |    506   | 506 |  1993.57  |  5781.52  |  19  |   315.5  |  610  |   1622   |  92533  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|  dislikeCount |    0    |    506   | 506 |   638.5   |   3189.8  |   4  |    37    |  89.5 |  291.25  |  57228  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-| favoriteCount |    0    |    506   | 506 |     0     |     0     |   0  |     0    |   0   |     0    |    0    | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
-|   likeCount   |    0    |    506   | 506 |  4508.17  |  8716.95  |  107 |   885.5  |  1913 |   4930   |  122859 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|   viewCount   |    0    |    506   | 506 | 226621.85 | 526681.42 | 4518 | 24896.25 | 55635 | 177095.5 | 6756754 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
-|      year     |    0    |    506   | 506 |  2017.09  |    0.92   | 2015 |  2016.25 |  2017 |   2018   |   2018  | <U+2581><U+2581><U+2583><U+2581><U+2581><U+2587><U+2581><U+2587> |
-
-Date Published
---------------
-
-Although the publication date for the video data spans from the beginning of 2015 and mid-2018, the median video date is December 4th, 2017. This suggests that Alex Jones increased his rate of video publication over time. The plot below shows videos published over time, where each dot represents a single video uploaded.
-
-``` r
-break.vec<-c(seq(from=as.Date("2015-01-08"), to=as.Date("2018-05-03"), by = "3 month"))
-
-ggplot(full_dat, aes(as.Date(publishedAt))) + 
- geom_dotplot(stackdir = "center", stackratio = .2, alpha = .3,
-              method = "histodot", binwidth = 40) + 
- scale_x_date(date_labels = "%b %y",
-              breaks = break.vec) +
- scale_y_continuous(breaks = NULL) + 
- labs(x = "",  y = "", title = "Videos published by Alex Jones",
-      subtitle = "January 2015 - May 2018")
-```
-
-![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-4-1.png)
-
-Video Tags
-----------
-
-Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 71 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Alex Jones", "Infowars", "Police State", "Martial Law", and "Nightly News". I only show tags with greater than 25 occurences in the videos.
-
-``` r
-sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
-  reduce(., `rbind`) %>%
-  as.tibble() %>%
-  gather() %>%
-  mutate(valClean = trimws(value)) # match same tags (except spaces added)
-
-tagTally <- sepTags %>%
-  count(valClean, sort = TRUE) %>%
-  filter(n > 25, valClean != "0")
-```
-
-``` r
-ggplot(tagTally, aes(reorder(valClean, -n), n)) +
-  geom_bar(stat = "identity") + 
-  labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-6-1.png)
+`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe 506 videos in total. Each video has 19 variables of interest (i.e. features, covariates, or inputs) associated with it.
 
 Filter to media manipulation-related videos
 -------------------------------------------
@@ -254,7 +193,7 @@ subset_by_description <- mainstream_filter(full_dat, "description")
 subset_by_title <- mainstream_filter(full_dat, "title")
 ```
 
-Below, I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title.
+I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title.
 
 ``` r
 ms_dat <- subset_by_description %>%
@@ -263,8 +202,6 @@ ms_dat <- subset_by_description %>%
   distinct()
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
-
-    ## Warning: Missing column names filled in: 'X1' [1]
 
     ## Parsed with column specification:
     ## cols(
@@ -282,20 +219,32 @@ ms_dat <- subset_by_description %>%
 
     ## See spec(...) for full column specifications.
 
-Exploratory Analysis
-====================
+Exploration and Analysis
+========================
 
-In the interest of time, I limit my exploration and analysis to the numeric variables. Below, I print out summary information for the numeric variables available to us.
+I poke around with variables of interest from both the full dataset and the data filtered down to only those videos related to the mainstream media. Some characteristics may vary between the two datasets; I aim to draw out what they are.
 
-The table below provides **summary statistics for videos with mainstream-media tags**.
+Summary statistics
+------------------
 
-In contrast, the table below provides **summary statistics for all videos**.
+Below are summary statistics for numeric variables of the full dataset.
 
-Based on the two tables, I immediately notice a few things:
+Skim summary statistics
+n obs: 506
+n variables: 19
 
-1.  `favoriteCount` doesn't provide any information.
-2.  The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos. The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
-3.  The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
+Variable type: integer
+
+|    variable   | missing | complete |  n  |    mean   |     sd    |  p0  |    p25   |  p50  |    p75   |   p100  |                               hist                               |
+|:-------------:|:-------:|:--------:|:---:|:---------:|:---------:|:----:|:--------:|:-----:|:--------:|:-------:|:----------------------------------------------------------------:|
+|  commentCount |    0    |    506   | 506 |  1993.57  |  5781.52  |  19  |   315.5  |  610  |   1622   |  92533  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|  dislikeCount |    0    |    506   | 506 |   638.5   |   3189.8  |   4  |    37    |  89.5 |  291.25  |  57228  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+| favoriteCount |    0    |    506   | 506 |     0     |     0     |   0  |     0    |   0   |     0    |    0    | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
+|   likeCount   |    0    |    506   | 506 |  4508.17  |  8716.95  |  107 |   885.5  |  1913 |   4930   |  122859 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|   viewCount   |    0    |    506   | 506 | 226621.85 | 526681.42 | 4518 | 24896.25 | 55635 | 177095.5 | 6756754 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|      year     |    0    |    506   | 506 |  2017.09  |    0.92   | 2015 |  2016.25 |  2017 |   2018   |   2018  | <U+2581><U+2581><U+2583><U+2581><U+2581><U+2587><U+2581><U+2587> |
+
+In contrast, the table below provides summary statistics for videos with **mainstream-media tags**.
 
 Skim summary statistics
 n obs: 125
@@ -310,20 +259,95 @@ Variable type: integer
 | favoriteCount |    0    |    125   | 125 |    0    |     0     |   0  |   0   |   0   |    0   |   0   | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
 |   likeCount   |    0    |    125   | 125 | 4854.27 |  6418.85  |  130 |  969  |  1944 |  6827  | 39234 | <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
 |   viewCount   |    0    |    125   | 125 |  2e+05  | 383485.94 | 4518 | 26729 | 56265 | 228781 | 3e+06 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|      year     |    0    |    125   | 125 | 2017.07 |    0.6    | 2015 |  2017 |  2017 |  2017  |  2018 | <U+2581><U+2581><U+2581><U+2581><U+2581><U+2587><U+2581><U+2582> |
+
+When I compare the two tables, I immediately notice a few things:
+
+1.  `favoriteCount` doesn't provide any information.
+2.  The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos. The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
+3.  The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
+4.  The median date published for the full dataset is December 4th, 2017. The median date published for the mainstream subset is August 10th, 2017. This suggests that the temporal pattern of videos differs between the two datasets. I'll explore this point first in the section below.
+
+Date Published
+--------------
+
+Although the publication date for the video data spans from the beginning of 2015 and mid-2018, the median video date is December 4th, 2017. This suggests that Alex Jones increased his rate of video publication over time. The plot below shows videos published over time, where each dot represents a single video uploaded.
+
+``` r
+break.vec<-c(seq(from=as.Date("2015-01-08"), to=as.Date("2018-05-03"), by = "3 month"))
+
+ggplot(full_dat, aes(as.Date(publishedAt))) + 
+ geom_dotplot(stackdir = "center", stackratio = .2, alpha = .3,
+              method = "histodot", binwidth = 40) + 
+ scale_x_date(date_labels = "%b %y",
+              breaks = break.vec) +
+ scale_y_continuous(breaks = NULL) + 
+ labs(x = "",  y = "", title = "Videos published by Alex Jones",
+      subtitle = "January 2015 - May 2018")
+```
+
+![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-5-1.png)
+
+Are videos related to the mainstream media published closer to the end of the period that we are interested in? Do they surround the 2016 presidential election?
+
+``` r
+cat_full_dat <- full_dat %>%
+  mutate(main_stream_desc = ifelse(is.na(description), FALSE, str_detect(description, regex(paste0("(?i)", pattern)))),
+         main_stream_title = str_detect(title, regex(paste0("(?i)", pattern))),
+         main_stream_tags = str_detect(tags, regex(paste0("(?i)", pattern)))) %>%
+  mutate(main_stream = ifelse((main_stream_desc | main_stream_tags | main_stream_title), "Mainstream-related videos", "Non mainstream-related videos"),
+         Likes = likeCount/viewCount,
+         Dislikes = dislikeCount/viewCount,
+         Comments = commentCount/viewCount)
+
+ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_stream)) + 
+ geom_dotplot(stackdir = "center", stackratio = .2, alpha = .1,
+              method = "histodot", binwidth = 40) + 
+ scale_x_date(date_labels = "%b %y",
+              breaks = break.vec) +
+ scale_y_continuous(breaks = NULL) + 
+ labs(x = "",  y = "", title = "Mainstream media-related videos over time",
+      subtitle = "January 2015 - May 2018") + 
+  theme(legend.position="bottom",
+        legend.title=element_blank())
+```
+
+![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-6-1.png)
+
+From the plot above, we see that videos published about the mainstream media were concentrated between December 2016 and August 2017.
+
+Video Tags
+----------
+
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 71 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Alex Jones", "Infowars", "Police State", "Martial Law", and "Nightly News". I only show tags with greater than 25 occurences in the videos.
+
+``` r
+sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
+  reduce(., `rbind`) %>%
+  as.tibble() %>%
+  gather() %>%
+  mutate(valClean = trimws(value)) # match same tags (except spaces added)
+
+tagTally <- sepTags %>%
+  count(valClean, sort = TRUE) %>%
+  filter(n > 25, valClean != "0")
+```
+
+``` r
+ggplot(tagTally, aes(reorder(valClean, -n), n)) +
+  geom_bar(stat = "identity") + 
+  labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-8-1.png)
 
 ### Proportion of likes/dislikes to views
 
 The summary tables above warrant an exploratory comparison of viewer engagement. With the data available, we quantify viewer engagement with the proportion of likes/dislikes to views. A higher proportion of dis/likes to views suggests increased audience engagement and responsiveness. I first reshape the data to facilitate such a comparison, and then present results in a density plot.
 
 ``` r
-toPlot <- full_dat %>%
-  mutate(main_stream_desc = str_detect(description, regex(paste0("(?i)", pattern))),
-         main_stream_title = str_detect(title, regex(paste0("(?i)", pattern))),
-         main_stream_tags = str_detect(tags, regex(paste0("(?i)", pattern)))) %>%
-  mutate(main_stream = ifelse((main_stream_desc | main_stream_tags | main_stream_title), "Mainstream-related videos", "Non mainstream-related videos"),
-         Likes = likeCount/viewCount,
-         Dislikes = dislikeCount/viewCount,
-         Comments = commentCount/viewCount) %>%
+toPlot <- cat_full_dat %>%
   select(main_stream, Likes, Dislikes, Comments) %>%
   gather(var, prop, Likes:Comments)
 
