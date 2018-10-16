@@ -1,16 +1,13 @@
 ---
-title: 'Youtube Video Data: Cleaning & Analysis'
+title: 'Features of Far-right Influences on YouTube'
 author: "Hope Johnson"
-date: "May 24 2018"
-# output:
-#   html_document:
-#     keep_md: true
-#     toc: true
-#     toc_depth: 2
-#     toc_float: true
-#     code_folding: hide
-output: github_document
-    
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  md_document:
+    toc: true
+    variant: markdown_github
+    toc_depth: 1
+#output: github_document
 ---
 
 ```{r libraries, message=FALSE, warning=FALSE}
@@ -20,18 +17,78 @@ library(stringr)
 library(lubridate)
 library(magrittr)
 library(skimr)
+options(width = 120)
 ```
 
 # Opening
 
-This document contains cleaning functions, summary tables, and plots for all videos uploaded to the Alex Jones Channel between between January 1st, 2015 and May 4th, 2018. Throughout this document, individual code chunks are viewable by pushing the "code"" button the to the right of each section. To view all chunks in this document, select "Show All Code"" from the dropdown menu in the upper right. The data-generating process calls on a raw .json file of videos pulled from Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. 
+This work was created to support the Media Manipulation Initiative (MMI) at Data & Society. The goal of the the Media Manipulation Initiative is to examine how different groups use the participatory culture of the internet to turn the strengths of a free society into vulnerabilities, ultimately threatening expressive freedoms and civil rights. For this task, reserachers at the Media Manipulation Initiative are interested in how YouTube influences are attacking the mainstream media. One of the most active influencers is Alex Jones, and his media network InfoWars. By taking a deep dive into Alex Jones' YouTube videos, the research team will learn how discourse related to the mainstream media differs from other content uploaded by Alex Jones.
+
+What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research. 
+
+**add some outcomes**
+
 
 # Munge data 
 
-First, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row. 
+I am targeting the title, description, tags, number of likes, number of dislikes, and number of views for each video uploaded to the Alex Jones YouTube channel during the specified three-year time period. The video statistics data arrives as a .json file, which for a single video appears like the chunk below.
+
+```{r, eval = FALSE}
+ {
+        "etag": "\"DuHzAJ-eQIiCIp7p4ldoVcVAOeY/3xbKWLXhghfFL-E8ShUKH9FmQkI\"",
+        "items": [
+            {
+                "etag": "\"DuHzAJ-eQIiCIp7p4ldoVcVAOeY/JEIv93BVt7HnVH5wreobXMimZJs\"",
+                "id": "JEkS5w3NegA",
+                "kind": "youtube#video",
+                "snippet": {
+                    "categoryId": "25",
+                    "channelId": "UCvsye7V9psc-APX6wV1twLg",
+                    "channelTitle": "The Alex Jones Channel",
+                    "defaultAudioLanguage": "en",
+                    "description": "Dr. Ed Group joins Alex Jones live in studio to expose how 5G cell phone radiation is poisoning the population by microwaving our cells/DNA to prevent people from reproducing the human species.",
+                    "liveBroadcastContent": "none",
+                    "publishedAt": "2018-05-03T21:55:03.000Z",
+                    "tags": [
+                        "Infowars",
+                        "Alex Jones",
+                        "Donald Trump",
+                        "Politics",
+                        "Prison Planet",
+                        "1776",
+                        "False Flag",
+                        "911",
+                        "Russia",
+                        "Collusion",
+                        "News",
+                        "War",
+                        "WW3"
+                    ],
+                    "title": "BREAKING: Government Admits 5G Is Killing You And Your Family"
+                },
+                "statistics": {
+                    "commentCount": "320",
+                    "dislikeCount": "38",
+                    "favoriteCount": "0",
+                    "likeCount": "783",
+                    "viewCount": "20182"
+                }
+            }
+        ],
+        "kind": "youtube#videoListResponse",
+        "pageInfo": {
+            "resultsPerPage": 1,
+            "totalResults": 1
+        }
+    }
+```
+
+JSON stands for JavaScript Object Notation, and this file format is commonly used to store data on the web. For data analysis and visualization, JSON is not ideal. As an initial step, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row. 
+
+If the code below means nothing to you, don't worry! I'm mostly keeping these helper functions here in order to remember what I did later on. The main takeaway is that data munging gets us from the nested, concave format shown above to a rectangular, tidy one for easy analysis. 
 
 ```{r helper_function}
-# Note: The first two functions are not my own. See: 
+# For more on .json file flattening, see:
 # https://stackoverflow.com/questions/35444968/read-json-file-into-a-data-frame-without-nested-lists 
 
 col_fixer <- function(x, vec2col = FALSE) {
@@ -62,7 +119,7 @@ Flattener <- function(indf, vec2col = FALSE) {
 #' @return flattened video item with a column for each nested piece of information from json
 make_tidy <- function(item){
   colNames <- c("categoryId", "channelId", "channelTitle", "defaultAudioLanguage", "description", 
-                "liveBroadcastContent", "localized", "tags", "publishedAt", "thumbnails", "title")
+                "liveBroadcastContent", "localized", "tags", "publishedAt", "thumbnails", "title") # only keep columns I care about
   item <- data.frame(item)
   { if (length(colNames) != length(names(item$snippet))) {
       missingCols <- setdiff(union(names(item$snippet), colNames), intersect(names(item$snippet), colNames))
@@ -100,16 +157,28 @@ clean_full_dat <- function(file){
 }
 ```
 
-I convert the raw data from it's original .json format to one that can be written as a sensible .csv file. To simplify this task, I use the package `jsonlite`, available for download on CRAN. The helper functions that go into creating the main function, `clean_full_dat`, can be found in the first code chunk on this document. 
+GitHub doesn't like it when I store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email. 
 
-```{r convert_dat, warning=FALSE, error=FALSE, message=FALSE}
+```{r convert_dat, warning=FALSE, error=FALSE, message=FALSE, eval=FALSE}
 full_dat <- clean_full_dat("../data/vid_details.json") 
-#write_csv(full_dat, "data/video_metadata.csv")
+#write_rds(full_dat, "data/video_metadata.rds") # .rds for type persistence
 ```
 
-`Full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to theAlexJonesChannel between between January 1st, 2015 and May 4th, 2018.
+```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
+full_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata.csv"))
+```
 
-# Filter data
+`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe `r nrow(full_dat)` videos in total. Each video has `r length(full_dat)` variables of interest (i.e. features, covariates, or inputs) associated with it.
+
+```{r}
+names(full_dat)
+skim(full_dat)
+```
+
+
+## Filter to media manipulation-related videos
+
+The reserach team is interested in gathering insights from (1) the full collection of videos, and (2) a subset of videos with tags identified as relevant to discourse against mainstream media. 
 
 To create a dataset with only the words identified by researchers as relevant, I perform a search of the following attributes of each video: tags, description, and title. If any of the relevant terms show up in any of those three items, I save the video to a secondary dataframe, `ms_dat`. Note that any escape characters attached to relevant_terms (e.g., "buzzfeed/n", indicating a new paragraph) will still be found in the search function. 
 
@@ -142,7 +211,7 @@ subset_by_title <- mainstream_filter(full_dat, "title")
 
 Below, I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title. Many of the videos in these three dataframes are repetitions of one another. I perform an operation, `distinct`, to only keep unique videos in the mainstream subset. 
 
-```{r make_ms_dat}
+```{r make_ms_dat, eval=FALSE}
 ms_dat <- subset_by_description %>%
   bind_rows(subset_by_tags) %>%
   bind_rows(subset_by_title) %>%
@@ -150,12 +219,24 @@ ms_dat <- subset_by_description %>%
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
 
+```{r, echo=FALSE}
+ms_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata_mainstream_media.csv"))
+```
+
 
 # Exploratory Analysis 
 
-In the interest of time, I limit my exploration and analysis to the numeric variables. With more time, I will implement an in-depth analysis of the `description` text for each video. Below, I print out summary information for the numeric variables available to us. 
+In the interest of time, I limit my exploration and analysis to the numeric variables. Below, I print out summary information for the numeric variables available to us. 
 
-The first table provides **summary statistics for videos with mainstream-media tags**. The second table provides **summary statistics for all videos**. I immediately notice a few things:
+The table below provides **summary statistics for videos with mainstream-media tags**. 
+
+
+
+In contrast, the table below provides **summary statistics for all videos**. 
+
+
+
+Based on the two tables, I immediately notice a few things:
 
 1. `favoriteCount` doesn't provide any information.
 2. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset. 
@@ -198,6 +279,11 @@ The y-axis on this plot is a scaled density because the sample sizes are differe
 
 The pink tail to the right within the "Likes" cell suggests that viewer engagement is higher for videos with mainstream tags than those without. This illuminates a potential motivation of mainstream media-related content creation. Previous research suggests that malicious actors creating and spreading disinformation, propaganda, and/or fake news are usually motivated by one or more of the following categories: ideology, money, and/or status or attention [0-1]. The differential in likes and views suggests that videos related to mainstream media garner more attention than the average video from the Alex Jones channel.   
 
+# Discussion
+
+Add major takeaways here 
+
+In future work, I will implement an in-depth analysis of the `description` text for each video. 
 
 # Closing
 
@@ -205,7 +291,7 @@ The pink tail to the right within the "Likes" cell suggests that viewer engageme
 version
 ```
 
-# Citations
+# Sources
 
 [0] Alice Marwick and Rebecca Lewis, "Media Manipulation and Disinformation Online" (Data & Society Research Institute, May 17, 2017), https://datasociety.net/pubs/oh/DataAndSociety_MediaManipulationAndDisinformationOnline.pdf. 
 

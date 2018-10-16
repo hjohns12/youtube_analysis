@@ -1,7 +1,9 @@
-Youtube Video Data: Cleaning & Analysis
-================
-Hope Johnson
-May 24 2018
+-   [Opening](#opening)
+-   [Munge data](#munge-data)
+-   [Exploratory Analysis](#exploratory-analysis)
+-   [Discussion](#discussion)
+-   [Closing](#closing)
+-   [Sources](#sources)
 
 ``` r
 library(tidyverse)
@@ -10,20 +12,79 @@ library(stringr)
 library(lubridate)
 library(magrittr)
 library(skimr)
+options(width = 120)
 ```
 
 Opening
 =======
 
-This document contains cleaning functions, summary tables, and plots for all videos uploaded to the Alex Jones Channel between between January 1st, 2015 and May 4th, 2018. Throughout this document, individual code chunks are viewable by pushing the "code"" button the to the right of each section. To view all chunks in this document, select "Show All Code"" from the dropdown menu in the upper right. The data-generating process calls on a raw .json file of videos pulled from Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder.
+This work was created to support the Media Manipulation Initiative (MMI) at Data & Society. The goal of the the Media Manipulation Initiative is to examine how different groups use the participatory culture of the internet to turn the strengths of a free society into vulnerabilities, ultimately threatening expressive freedoms and civil rights. For this task, reserachers at the Media Manipulation Initiative are interested in how YouTube influences are attacking the mainstream media. One of the most active influencers is Alex Jones, and his media network InfoWars. By taking a deep dive into Alex Jones' YouTube videos, the research team will learn how discourse related to the mainstream media differs from other content uploaded by Alex Jones.
+
+What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
+
+**add some outcomes**
 
 Munge data
 ==========
 
-First, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row.
+I am targeting the title, description, tags, number of likes, number of dislikes, and number of views for each video uploaded to the Alex Jones YouTube channel during the specified three-year time period. The video statistics data arrives as a .json file, which for a single video appears like the chunk below.
 
 ``` r
-# Note: The first two functions are not my own. See: 
+ {
+        "etag": "\"DuHzAJ-eQIiCIp7p4ldoVcVAOeY/3xbKWLXhghfFL-E8ShUKH9FmQkI\"",
+        "items": [
+            {
+                "etag": "\"DuHzAJ-eQIiCIp7p4ldoVcVAOeY/JEIv93BVt7HnVH5wreobXMimZJs\"",
+                "id": "JEkS5w3NegA",
+                "kind": "youtube#video",
+                "snippet": {
+                    "categoryId": "25",
+                    "channelId": "UCvsye7V9psc-APX6wV1twLg",
+                    "channelTitle": "The Alex Jones Channel",
+                    "defaultAudioLanguage": "en",
+                    "description": "Dr. Ed Group joins Alex Jones live in studio to expose how 5G cell phone radiation is poisoning the population by microwaving our cells/DNA to prevent people from reproducing the human species.",
+                    "liveBroadcastContent": "none",
+                    "publishedAt": "2018-05-03T21:55:03.000Z",
+                    "tags": [
+                        "Infowars",
+                        "Alex Jones",
+                        "Donald Trump",
+                        "Politics",
+                        "Prison Planet",
+                        "1776",
+                        "False Flag",
+                        "911",
+                        "Russia",
+                        "Collusion",
+                        "News",
+                        "War",
+                        "WW3"
+                    ],
+                    "title": "BREAKING: Government Admits 5G Is Killing You And Your Family"
+                },
+                "statistics": {
+                    "commentCount": "320",
+                    "dislikeCount": "38",
+                    "favoriteCount": "0",
+                    "likeCount": "783",
+                    "viewCount": "20182"
+                }
+            }
+        ],
+        "kind": "youtube#videoListResponse",
+        "pageInfo": {
+            "resultsPerPage": 1,
+            "totalResults": 1
+        }
+    }
+```
+
+JSON stands for JavaScript Object Notation, and this file format is commonly used to store data on the web. For data analysis and visualization, JSON is not ideal. As an initial step, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row.
+
+If the code below means nothing to you, don't worry! I'm mostly keeping these helper functions here in order to remember what I did later on. The main takeaway is that data munging gets us from the nested, concave format shown above to a rectangular, tidy one for easy analysis.
+
+``` r
+# For more on .json file flattening, see:
 # https://stackoverflow.com/questions/35444968/read-json-file-into-a-data-frame-without-nested-lists 
 
 col_fixer <- function(x, vec2col = FALSE) {
@@ -54,7 +115,7 @@ Flattener <- function(indf, vec2col = FALSE) {
 #' @return flattened video item with a column for each nested piece of information from json
 make_tidy <- function(item){
   colNames <- c("categoryId", "channelId", "channelTitle", "defaultAudioLanguage", "description", 
-                "liveBroadcastContent", "localized", "tags", "publishedAt", "thumbnails", "title")
+                "liveBroadcastContent", "localized", "tags", "publishedAt", "thumbnails", "title") # only keep columns I care about
   item <- data.frame(item)
   { if (length(colNames) != length(names(item$snippet))) {
       missingCols <- setdiff(union(names(item$snippet), colNames), intersect(names(item$snippet), colNames))
@@ -92,17 +153,65 @@ clean_full_dat <- function(file){
 }
 ```
 
-I convert the raw data from it's original .json format to one that can be written as a sensible .csv file. To simplify this task, I use the package `jsonlite`, available for download on CRAN. The helper functions that go into creating the main function, `clean_full_dat`, can be found in the first code chunk on this document.
+GitHub doesn't like it when I store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email.
 
 ``` r
 full_dat <- clean_full_dat("../data/vid_details.json") 
-#write_csv(full_dat, "data/video_metadata.csv")
+#write_rds(full_dat, "data/video_metadata.rds") # .rds for type persistence
 ```
 
-`Full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to theAlexJonesChannel between between January 1st, 2015 and May 4th, 2018.
+`full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe 506 videos in total. Each video has 19 variables of interest (i.e. features, covariates, or inputs) associated with it.
 
-Filter data
-===========
+``` r
+names(full_dat)
+```
+
+    ##  [1] "id"                    "kind"                  "categoryId"            "channelId"            
+    ##  [5] "channelTitle"          "defaultAudioLanguage"  "description"           "liveBroadcastContent" 
+    ##  [9] "publishedAt"           "title"                 "localized.description" "localized.title"      
+    ## [13] "commentCount"          "dislikeCount"          "favoriteCount"         "likeCount"            
+    ## [17] "viewCount"             "tags"                  "year"
+
+``` r
+skim(full_dat)
+```
+
+    ## Skim summary statistics
+    ##  n obs: 506 
+    ##  n variables: 19 
+    ## 
+    ## Variable type: character 
+    ##               variable missing complete   n min  max empty n_unique
+    ##              channelId       0      506 506  24   24     0        1
+    ##           channelTitle       0      506 506  22   22     0        1
+    ##   defaultAudioLanguage      70      436 506   2    5     0        2
+    ##            description       6      500 506  17 3570     0      451
+    ##                     id       0      506 506  11   11     0      506
+    ##                   kind       0      506 506  13   13     0        1
+    ##   liveBroadcastContent       0      506 506   4    4     0        1
+    ##  localized.description       6      500 506  17 3570     0      451
+    ##        localized.title       0      506 506  16  100     0      506
+    ##                   tags       0      506 506   1  538     0       99
+    ##                  title       0      506 506  16  100     0      506
+    ## 
+    ## Variable type: integer 
+    ##       variable missing complete   n      mean        sd   p0      p25     p50       p75    p100     hist
+    ##     categoryId       0      506 506     24.75      1.04   19    25       25       25         29 <U+2581><U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581>
+    ##   commentCount       0      506 506   1993.57   5781.52   19   315.5    610     1622      92533 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##   dislikeCount       0      506 506    638.5    3189.8     4    37       89.5    291.25   57228 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##  favoriteCount       0      506 506      0         0       0     0        0        0          0 <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581>
+    ##      likeCount       0      506 506   4508.17   8716.95  107   885.5   1913     4930     122859 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##      viewCount       0      506 506 226621.85 526681.42 4518 24896.25 55635   177095.5  6756754 <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581>
+    ##           year       0      506 506   2017.09      0.92 2015  2016.25  2017     2018       2018 <U+2581><U+2581><U+2583><U+2581><U+2581><U+2587><U+2581><U+2587>
+    ## 
+    ## Variable type: POSIXct 
+    ##     variable missing complete   n        min        max     median n_unique
+    ##  publishedAt       0      506 506 2015-01-08 2018-05-03 2017-12-04      506
+
+Filter to media manipulation-related videos
+-------------------------------------------
+
+The reserach team is interested in gathering insights from (1) the full collection of videos, and (2) a subset of videos with tags identified as relevant to discourse against mainstream media.
 
 To create a dataset with only the words identified by researchers as relevant, I perform a search of the following attributes of each video: tags, description, and title. If any of the relevant terms show up in any of those three items, I save the video to a secondary dataframe, `ms_dat`. Note that any escape characters attached to relevant\_terms (e.g., "buzzfeed/n", indicating a new paragraph) will still be found in the search function.
 
@@ -143,12 +252,34 @@ ms_dat <- subset_by_description %>%
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
 
+    ## Warning: Missing column names filled in: 'X1' [1]
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_character(),
+    ##   X1 = col_integer(),
+    ##   categoryId = col_integer(),
+    ##   publishedAt = col_datetime(format = ""),
+    ##   commentCount = col_integer(),
+    ##   dislikeCount = col_integer(),
+    ##   favoriteCount = col_integer(),
+    ##   likeCount = col_integer(),
+    ##   viewCount = col_integer(),
+    ##   year = col_integer()
+    ## )
+
+    ## See spec(...) for full column specifications.
+
 Exploratory Analysis
 ====================
 
-In the interest of time, I limit my exploration and analysis to the numeric variables. With more time, I will implement an in-depth analysis of the `description` text for each video. Below, I print out summary information for the numeric variables available to us.
+In the interest of time, I limit my exploration and analysis to the numeric variables. Below, I print out summary information for the numeric variables available to us.
 
-The first table provides **summary statistics for videos with mainstream-media tags**. The second table provides **summary statistics for all videos**. I immediately notice a few things:
+The table below provides **summary statistics for videos with mainstream-media tags**.
+
+In contrast, the table below provides **summary statistics for all videos**.
+
+Based on the two tables, I immediately notice a few things:
 
 1.  `favoriteCount` doesn't provide any information.
 2.  The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos. The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
@@ -156,30 +287,30 @@ The first table provides **summary statistics for videos with mainstream-media t
 
 Skim summary statistics
 n obs: 125
-n variables: 19
+n variables: 20
 
-Variable type: numeric
+Variable type: integer
 
-|      variable     | missing | complete |  n  |   mean  |     sd    |  p0  |  p25  |  p50  |   p75  |  p100 |   hist   |
-|:-----------------:|:-------:|:--------:|:---:|:-------:|:---------:|:----:|:-----:|:-----:|:------:|:-----:|:--------:|
-|    commentCount   |    0    |    125   | 125 |  1563.2 |   2502.8  |  19  |  317  |  689  |  2084  | 20858 | ▇▁▁▁▁▁▁▁ |
-|    dislikeCount   |    0    |    125   | 125 |  844.89 |  5165.73  |   4  |   38  |   97  |   342  | 57228 | ▇▁▁▁▁▁▁▁ |
-|   favoriteCount   |    0    |    125   | 125 |    0    |     0     |   0  |   0   |   0   |    0   |   0   | ▁▁▁▇▁▁▁▁ |
-|     likeCount     |    0    |    125   | 125 | 4854.27 |  6418.85  |  130 |  969  |  1944 |  6827  | 39234 | ▇▂▁▁▁▁▁▁ |
-|     viewCount     |    0    |    125   | 125 |  2e+05  | 383485.94 | 4518 | 26729 | 56265 | 228781 | 3e+06 | ▇▁▁▁▁▁▁▁ |
-| Skim summary stat |  istics |          |     |         |           |      |       |       |        |       |          |
-|     n obs: 506    |         |          |     |         |           |      |       |       |        |       |          |
-|  n variables: 19  |         |          |     |         |           |      |       |       |        |       |          |
+|      variable     | missing | complete |  n  |   mean  |     sd    |  p0  |  p25  |  p50  |   p75  |  p100 |                               hist                               |
+|:-----------------:|:-------:|:--------:|:---:|:-------:|:---------:|:----:|:-----:|:-----:|:------:|:-----:|:----------------------------------------------------------------:|
+|    commentCount   |    0    |    125   | 125 |  1563.2 |   2502.8  |  19  |  317  |  689  |  2084  | 20858 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|    dislikeCount   |    0    |    125   | 125 |  844.89 |  5165.73  |   4  |   38  |   97  |   342  | 57228 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|   favoriteCount   |    0    |    125   | 125 |    0    |     0     |   0  |   0   |   0   |    0   |   0   | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
+|     likeCount     |    0    |    125   | 125 | 4854.27 |  6418.85  |  130 |  969  |  1944 |  6827  | 39234 | <U+2587><U+2582><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|     viewCount     |    0    |    125   | 125 |  2e+05  | 383485.94 | 4518 | 26729 | 56265 | 228781 | 3e+06 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+| Skim summary stat |  istics |          |     |         |           |      |       |       |        |       |                                                                  |
+|     n obs: 506    |         |          |     |         |           |      |       |       |        |       |                                                                  |
+|  n variables: 19  |         |          |     |         |           |      |       |       |        |       |                                                                  |
 
-Variable type: numeric
+Variable type: integer
 
-|    variable   | missing | complete |  n  |    mean   |     sd    |  p0  |    p25   |  p50  |    p75   |   p100  |   hist   |
-|:-------------:|:-------:|:--------:|:---:|:---------:|:---------:|:----:|:--------:|:-----:|:--------:|:-------:|:--------:|
-|  commentCount |    0    |    506   | 506 |  1993.57  |  5781.52  |  19  |   315.5  |  610  |   1622   |  92533  | ▇▁▁▁▁▁▁▁ |
-|  dislikeCount |    0    |    506   | 506 |   638.5   |   3189.8  |   4  |    37    |  89.5 |  291.25  |  57228  | ▇▁▁▁▁▁▁▁ |
-| favoriteCount |    0    |    506   | 506 |     0     |     0     |   0  |     0    |   0   |     0    |    0    | ▁▁▁▇▁▁▁▁ |
-|   likeCount   |    0    |    506   | 506 |  4508.17  |  8716.95  |  107 |   885.5  |  1913 |   4930   |  122859 | ▇▁▁▁▁▁▁▁ |
-|   viewCount   |    0    |    506   | 506 | 226621.85 | 526681.42 | 4518 | 24896.25 | 55635 | 177095.5 | 6756754 | ▇▁▁▁▁▁▁▁ |
+|    variable   | missing | complete |  n  |    mean   |     sd    |  p0  |    p25   |  p50  |    p75   |   p100  |                               hist                               |
+|:-------------:|:-------:|:--------:|:---:|:---------:|:---------:|:----:|:--------:|:-----:|:--------:|:-------:|:----------------------------------------------------------------:|
+|  commentCount |    0    |    506   | 506 |  1993.57  |  5781.52  |  19  |   315.5  |  610  |   1622   |  92533  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|  dislikeCount |    0    |    506   | 506 |   638.5   |   3189.8  |   4  |    37    |  89.5 |  291.25  |  57228  | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+| favoriteCount |    0    |    506   | 506 |     0     |     0     |   0  |     0    |   0   |     0    |    0    | <U+2581><U+2581><U+2581><U+2587><U+2581><U+2581><U+2581><U+2581> |
+|   likeCount   |    0    |    506   | 506 |  4508.17  |  8716.95  |  107 |   885.5  |  1913 |   4930   |  122859 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
+|   viewCount   |    0    |    506   | 506 | 226621.85 | 526681.42 | 4518 | 24896.25 | 55635 | 177095.5 | 6756754 | <U+2587><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581><U+2581> |
 
 ### Proportion of likes/dislikes to views
 
@@ -213,6 +344,13 @@ The y-axis on this plot is a scaled density because the sample sizes are differe
 
 The pink tail to the right within the "Likes" cell suggests that viewer engagement is higher for videos with mainstream tags than those without. This illuminates a potential motivation of mainstream media-related content creation. Previous research suggests that malicious actors creating and spreading disinformation, propaganda, and/or fake news are usually motivated by one or more of the following categories: ideology, money, and/or status or attention \[0-1\]. The differential in likes and views suggests that videos related to mainstream media garner more attention than the average video from the Alex Jones channel.
 
+Discussion
+==========
+
+Add major takeaways here
+
+In future work, I will implement an in-depth analysis of the `description` text for each video.
+
 Closing
 =======
 
@@ -221,23 +359,23 @@ version
 ```
 
     ##                _                           
-    ## platform       x86_64-apple-darwin15.6.0   
+    ## platform       x86_64-w64-mingw32          
     ## arch           x86_64                      
-    ## os             darwin15.6.0                
-    ## system         x86_64, darwin15.6.0        
+    ## os             mingw32                     
+    ## system         x86_64, mingw32             
     ## status                                     
     ## major          3                           
-    ## minor          5.0                         
-    ## year           2018                        
-    ## month          04                          
-    ## day            23                          
-    ## svn rev        74626                       
+    ## minor          4.3                         
+    ## year           2017                        
+    ## month          11                          
+    ## day            30                          
+    ## svn rev        73796                       
     ## language       R                           
-    ## version.string R version 3.5.0 (2018-04-23)
-    ## nickname       Joy in Playing
+    ## version.string R version 3.4.3 (2017-11-30)
+    ## nickname       Kite-Eating Tree
 
-Citations
-=========
+Sources
+=======
 
 \[0\] Alice Marwick and Rebecca Lewis, "Media Manipulation and Disinformation Online" (Data & Society Research Institute, May 17, 2017), <https://datasociety.net/pubs/oh/DataAndSociety_MediaManipulationAndDisinformationOnline.pdf>.
 
