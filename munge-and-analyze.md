@@ -1,7 +1,7 @@
 Features of Far-right Influences on YouTube
 ================
 Hope Johnson <br>
-17 October 2018
+18 October 2018
 
 ``` r
 library(tidyverse)
@@ -203,22 +203,6 @@ ms_dat <- subset_by_description %>%
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
 
-    ## Parsed with column specification:
-    ## cols(
-    ##   .default = col_character(),
-    ##   X1 = col_integer(),
-    ##   categoryId = col_integer(),
-    ##   publishedAt = col_datetime(format = ""),
-    ##   commentCount = col_integer(),
-    ##   dislikeCount = col_integer(),
-    ##   favoriteCount = col_integer(),
-    ##   likeCount = col_integer(),
-    ##   viewCount = col_integer(),
-    ##   year = col_integer()
-    ## )
-
-    ## See spec(...) for full column specifications.
-
 Exploration and Analysis
 ========================
 
@@ -286,7 +270,7 @@ ggplot(full_dat, aes(as.Date(publishedAt))) +
       subtitle = "January 2015 - May 2018")
 ```
 
-![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-5-1.png)
+<img src="munge-and-analyze_files/figure-markdown_github/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
 
 Are videos related to the mainstream media published closer to the end of the period that we are interested in? Do they surround the 2016 presidential election?
 
@@ -312,7 +296,7 @@ ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_
         legend.title=element_blank())
 ```
 
-![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-6-1.png)
+<img src="munge-and-analyze_files/figure-markdown_github/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 From the plot above, we see that videos published about the mainstream media were concentrated between December 2016 and August 2017.
 
@@ -340,7 +324,7 @@ ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-8-1.png)
+<img src="munge-and-analyze_files/figure-markdown_github/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 ### Proportion of likes/dislikes to views
 
@@ -361,7 +345,7 @@ ggplot(toPlot) +
   scale_fill_discrete("")
 ```
 
-![](munge-and-analyze_files/figure-markdown_github-ascii_identifiers/add_props-1.png)
+<img src="munge-and-analyze_files/figure-markdown_github/add_props-1.png" style="display: block; margin: auto;" />
 
 The y-axis on this plot is a scaled density because the sample sizes are different for videos with mainstream-tags and those without. The x-axis shows the proportion of the engagement type (comments, dislikes, likes) to the number of views for each video. The shading indicates whether the video had a mainstream tag or not.
 

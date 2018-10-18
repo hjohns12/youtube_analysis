@@ -217,7 +217,7 @@ ms_dat <- subset_by_description %>%
 #write.csv(ms_dat, "data/video_metadata_mainstream_media.csv")
 ```
 
-```{r, echo=FALSE, warning = FALSE, error=FALSE}
+```{r, echo=FALSE, warning = FALSE, error=FALSE, message = FALSE}
 ms_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata_mainstream_media.csv"))
 ```
 
@@ -250,7 +250,7 @@ When I compare the two tables, I immediately notice a few things:
 
 Although the publication date for the video data spans from the beginning of 2015 and mid-2018, the median video date is December 4th, 2017. This suggests that Alex Jones increased his rate of video publication over time. The plot below shows videos published over time, where each dot represents a single video uploaded.
 
-```{r message=FALSE, warning=FALSE, error=FALSE}
+```{r message=FALSE, warning=FALSE, error=FALSE, fig.align="center"}
 break.vec<-c(seq(from=as.Date("2015-01-08"), to=as.Date("2018-05-03"), by = "3 month"))
 
 ggplot(full_dat, aes(as.Date(publishedAt))) + 
@@ -266,7 +266,7 @@ ggplot(full_dat, aes(as.Date(publishedAt))) +
 
 Are videos related to the mainstream media published closer to the end of the period that we are interested in? Do they surround the 2016 presidential election? 
 
-```{r}
+```{r, fig.align="center"}
 cat_full_dat <- full_dat %>%
   mutate(main_stream_desc = ifelse(is.na(description), FALSE, str_detect(description, regex(paste0("(?i)", pattern)))),
          main_stream_title = str_detect(title, regex(paste0("(?i)", pattern))),
@@ -306,7 +306,7 @@ tagTally <- sepTags %>%
   filter(n > 25, valClean != "0")
 ```
 
-```{r}
+```{r fig.align="center"}
 ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
@@ -317,7 +317,7 @@ ggplot(tagTally, aes(reorder(valClean, -n), n)) +
 
 The summary tables above warrant an exploratory comparison of viewer engagement. With the data available, we quantify viewer engagement with the proportion of likes/dislikes to views. A higher proportion of dis/likes to views suggests increased audience engagement and responsiveness. I first reshape the data to facilitate such a comparison, and then present results in a density plot.
 
-```{r add_props}
+```{r add_props, fig.align="center"}
 toPlot <- cat_full_dat %>%
   select(main_stream, Likes, Dislikes, Comments) %>%
   gather(var, prop, Likes:Comments)
