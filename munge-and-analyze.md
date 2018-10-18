@@ -1,7 +1,7 @@
 Features of Far-right Influences on YouTube
 ================
 Hope Johnson <br>
-16 October 2018
+17 October 2018
 
 ``` r
 library(tidyverse)
