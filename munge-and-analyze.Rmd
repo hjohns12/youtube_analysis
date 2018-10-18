@@ -1,12 +1,7 @@
 ---
 title: 'Features of Far-right Influences on YouTube'
 author: "Hope Johnson <br>"
-date: "`r format(Sys.time(), '%d %B %Y')`"
-# output:
-#   md_document:
-#     toc: true
-#     variant: markdown_github
-#     toc_depth: 1
+date: "April 2018"
 output: github_document
 ---
 
@@ -21,6 +16,7 @@ library(skimr)
 
 ```{r echo = FALSE}
 options(width = 120)
+#skim_with(numeric = funs, append = FALSE)
 skim_with(numeric = list(hist = NULL))
 ```
 
@@ -30,8 +26,7 @@ This work was created to support the Media Manipulation Initiative (MMI) at Data
 
 What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
 
-*add some outcomes*
-
+*add outcomes*
 
 # Munge data
 
@@ -230,7 +225,8 @@ I poke around with variables of interest from both the full dataset and the data
 Below are summary statistics for numeric variables of the full dataset.
 
 ```{r full_dat summary statistics, results='asis', echo = FALSE}
-skim(full_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount, year) %>% skimr::kable(caption = "Summary statistics for all videos")
+skim(full_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount, year) %>%
+  skimr::kable(caption = "Summary statistics for all videos", format = "markdown")
 ```
 
 In contrast, the table below provides summary statistics for videos with **mainstream-media tags**.
@@ -299,11 +295,16 @@ sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
   reduce(., `rbind`) %>%
   as.tibble() %>%
   gather() %>%
-  mutate(valClean = trimws(value)) # match same tags (except spaces added)
+  mutate(valClean = trimws(value), # match same tags (except spaces added)
+         valClean = ifelse(str_detect(valClean, fixed("Info", ignore_case = TRUE)), "Info Wars", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Alex Jones", ignore_case = TRUE)), "Alex Jones", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean)) %>% 
+  filter(valClean != "0") # videos with zero tags got this label
 
 tagTally <- sepTags %>%
   count(valClean, sort = TRUE) %>%
-  filter(n > 25, valClean != "0")
+  filter(n > 5)
 ```
 
 ```{r fig.align="center"}
@@ -312,6 +313,41 @@ ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
+Are the popular tags for all Alex Jones videos the same ones used for mainstream-media related videos? By examing the most widely-used tags on the subset videos related to mainstream media, I find striking distinctions between the two groups. 
+
+```{r echo = FALSE, message=FALSE, warning=FALSE, error=FALSE}
+sepTags <- as.list(strsplit(ms_dat$tags, ",")) %>%
+  reduce(., `rbind`) %>%
+  as.tibble() %>%
+  gather() %>%
+  mutate(valClean = trimws(value), # match same tags (except spaces added)
+         valClean = ifelse(str_detect(valClean, fixed("Info", ignore_case = TRUE)), "Info Wars", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Alex Jones", ignore_case = TRUE)), "Alex Jones", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean)) %>% 
+  filter(valClean != "0") # videos with zero tags got this label
+
+tagTally_ms <- sepTags %>%
+  count(valClean, sort = TRUE) %>%
+  filter(n > 5)
+```
+
+```{r echo = FALSE, fig.align="center"}
+ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
+  geom_bar(stat = "identity") + 
+  labs(x = "", y = "# of tag occurences", title = "Video Tag Statistics", subtitle = "Mainstream-media related videos") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+There is expected overlap between the most popular tags in the mainstream-video subset and all videos: "Alex Jones", "Info Wars", and "Alternative Media" all appear in the top six most widely-used tags in both groups. In the mainstream media-related subset, "Hillary Clinton", "Truth", and "9/11" feature more prominently as tags. 
+
+Because the same video often accounts for multiple tags, we cannot compare the raw number of tags to contrast the two groups.  
+
+```{r}
+merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean")
+```
+
 
 ### Proportion of likes/dislikes to views
 
