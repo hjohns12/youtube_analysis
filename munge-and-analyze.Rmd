@@ -340,14 +340,48 @@ To understand better whether there are meaninful differences in tags used for vi
 
 ```{r}
 merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean") %>%
-rename(n.full = n.x, n.ms = n.y) %>%
-mutate(n.nonms = n.full - n.ms,
+	rename(n.full = n.x, n.ms = n.y) %>%
+	mutate(n.nonms = n.full - n.ms,
 		sum.ms = sum(n.ms, na.rm = TRUE),
 		sum.nonms = sum(n.nonms, na.rm = TRUE),
-		prop.ms = n.ms/sum.ms,
-		prop.nonms = n.nonms/sum.nonms)
+		`Mainstream media-related videos` = n.ms/sum.ms,            # this is a proportion
+		`Non mainstream media-related videos` = n.nonms/sum.nonms,  # this is also a proportion        
+		diff = abs(`Mainstream media-related videos` - `Non mainstream media-related videos`)) 
+		
+all_tag_comps <- merged_tags %>%
+		select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
+		gather(type, proportion, -valClean)
+		
+var_tag_comps <- merged_tags %>%
+	filter(diff > 0.02) %>%
+	select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
+	gather(type, proportion, -valClean)
 ```
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
+
+```{r}
+ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  labs(x = "Tag", y = "% of tag uses", title = "Tag Comparison", subtitle = "All tags") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  theme(legend.position="bottom",
+        legend.title=element_blank())
+
+```
+
+It is difficult to visually infer tags from the plot with a sizable difference in usage across the two video types. In this next plot, I highlight tags with an absolute difference of more than two percent between the two groups. The make this more concrete, what follows is the most extreme example we see in the data: the tag "Info Wars". This tag constitutes 3.7% of the tags in the mainstream media-related videos, and constitutes 12.5% of the tags in the non mainstream-media related videos. We see a difference of almost nine percentage points for this tag. Below is a plot presenting the share of tag use for tags with substantial variation in use between the two groups. 
+
+```{r}
+ggplot(var_tag_comps, aes(reorder(valClean, -proportion), proportion, color = type, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  labs(x = "Tag", y = "% of tag uses", title = "Tag Comparison", subtitle = "Filter: tags with a non-negligible difference in use statistics") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_y_continuous(labels = scales::percent) + 
+  theme(legend.position="bottom",
+        legend.title=element_blank())
+
+```
 
 ### Proportion of likes/dislikes to views
 
