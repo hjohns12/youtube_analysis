@@ -18,6 +18,7 @@ library(skimr)
 options(width = 120)
 #skim_with(numeric = funs, append = FALSE)
 skim_with(numeric = list(hist = NULL))
+# just a late-night thought for later but HEY this github_document output shit is annoying so just knit to an html and keep the md for later.... because seriously i think an html will do the trick
 ```
 
 # Opening
@@ -259,7 +260,6 @@ ggplot(full_dat, aes(as.Date(publishedAt))) +
       subtitle = "January 2015 - May 2018")
 ```
 
-
 Are videos related to the mainstream media published closer to the end of the period that we are interested in? Do they surround the 2016 presidential election? 
 
 ```{r, fig.align="center"}
@@ -290,13 +290,14 @@ From the plot above, we see that videos published about the mainstream media wer
 
 Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences in the videos. 
 
-```{r message=FALSE, warning=FALSE, error=FALSE}
+```{r make_all_tag_count_df, message=FALSE, warning=FALSE, error=FALSE}
 sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
   map_dfr(~ as_tibble(.)) %>%
   mutate(valClean = trimws(value), # match same tags (except spaces added)
          valClean = ifelse(str_detect(valClean, fixed("Info", ignore_case = TRUE)), "Info Wars", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Alex Jones", ignore_case = TRUE)), "Alex Jones", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Donald", ignore_case = TRUE)), "Donald Trump", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean),
          valClean = ifelse(str_detect(valClean, fixed("truth", ignore_case = TRUE)), "Truth", valClean)) 
 
@@ -305,7 +306,7 @@ tagTally <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r fig.align="center"}
+```{r count_tags_all_vids_plot, fig.align="center"}
 ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
@@ -314,13 +315,14 @@ ggplot(tagTally, aes(reorder(valClean, -n), n)) +
 
 Are the popular tags for all Alex Jones videos the same ones used for mainstream-media related videos? By examing the most widely-used tags on the subset videos related to mainstream media, I discover distinctions between the two groups. 
 
-```{r echo = FALSE, message=FALSE, warning=FALSE, error=FALSE}
+```{r make_ms_tag_count_df, echo = FALSE, message=FALSE, warning=FALSE, error=FALSE}
 sepTags <- as.list(strsplit(ms_dat$tags, ",")) %>%
    map_dfr(~ as_tibble(.)) %>%
    mutate(valClean = trimws(value), # match same tags (except spaces added)
          valClean = ifelse(str_detect(valClean, fixed("Info", ignore_case = TRUE)), "Info Wars", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Alex Jones", ignore_case = TRUE)), "Alex Jones", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("Donald", ignore_case = TRUE)), "Donald Trump", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean),
          valClean = ifelse(str_detect(valClean, fixed("truth", ignore_case = TRUE)), "Truth", valClean)) 
 
@@ -329,16 +331,16 @@ tagTally_ms <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r echo = FALSE, fig.align="center"}
+```{r ms_tag_count_plot, echo = FALSE, fig.align="center"}
 ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "", y = "# of tag occurences", title = "Video Tag Statistics", subtitle = "Mainstream-media related videos") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-To understand better whether there are meaninful differences in tags used for videos related to mainstream media, for the rest of this section I differentiate between mutually exlusive groups: tags for videos related to mainstream media, and tags for videos unrelated to mainstream media. I subtract the tag counts of `ms_dat` from the `full_dat` group, because I previously was treating the two groups as inclusive. 
+To understand better whether there are meaninful differences in tags used for videos related to mainstream media, for the rest of this section I differentiate between mutually exlusive groups: tags for videos related to mainstream media, and tags for videos unrelated to mainstream media. I subtract the tag counts of `ms_dat` from the `full_dat` group. 
 
-```{r}
+```{r make_tag_compare_dfs}
 merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean") %>%
 	rename(n.full = n.x, n.ms = n.y) %>%
 	mutate(n.nonms = n.full - n.ms,
@@ -359,29 +361,29 @@ var_tag_comps <- merged_tags %>%
 ```
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
 
-```{r}
+```{r all_tag_compare_fig, fig.align="center"}
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
-  labs(x = "Tag", y = "% of tag uses", title = "Tag Comparison", subtitle = "All tags") + 
+  labs(x = "Tag", y = "% of tag uses", title = "Vieo Tag Comparison") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   scale_y_continuous(labels = scales::percent) + 
   theme(legend.position="bottom",
         legend.title=element_blank())
-
 ```
 
-It is difficult to visually infer tags from the plot with a sizable difference in usage across the two video types. In this next plot, I highlight tags with an absolute difference of more than two percent between the two groups. The make this more concrete, what follows is the most extreme example we see in the data: the tag "Info Wars". This tag constitutes 3.7% of the tags in the mainstream media-related videos, and constitutes 12.5% of the tags in the non mainstream-media related videos. We see a difference of almost nine percentage points for this tag. Below is a plot presenting the share of tag use for tags with substantial variation in use between the two groups. 
+It is difficult to visually infer tags from the plot with a sizable difference in usage across the two video types. In the plot below, I highlight tags with an absolute difference of more than two percent between the two groups. The make this more concrete, let's consider the most extreme example from the data: the "Info Wars" tag. This tag constitutes 3.7% of the tags in the mainstream media-related videos, and constitutes 12.5% of the tags in the non mainstream-media related videos. There is a difference of almost nine percentage points for this tag. 
 
-```{r}
+```{r zoom_tag_compare_fig, fig.align="center"}
 ggplot(var_tag_comps, aes(reorder(valClean, -proportion), proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
-  labs(x = "Tag", y = "% of tag uses", title = "Tag Comparison", subtitle = "Filter: tags with a non-negligible difference in use statistics") + 
+  labs(x = "Tag", y = "% of tag uses", title = "Zoomed-In Tag Comparison") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   scale_y_continuous(labels = scales::percent) + 
   theme(legend.position="bottom",
         legend.title=element_blank())
-
 ```
+
+By comparing the two classes of videos, the data reveals that the tags "Info Wars", "Alternative Media", "Alex Jones", "War", "Truth", and "News Wars" are more often associated with non mainstream media-related videos. Tags including "Elections", "Fake", "Hack", "Lies", "MSM", "NSA", "Snowden", and "Wikileaks" are more often assciated with mainstream media-related videos. 
 
 ### Proportion of likes/dislikes to views
 
