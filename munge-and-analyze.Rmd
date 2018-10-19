@@ -288,19 +288,17 @@ From the plot above, we see that videos published about the mainstream media wer
 
 ## Video Tags
 
-Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 71 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Alex Jones", "Infowars", "Police State", "Martial Law", and "Nightly News". I only show tags with greater than 25 occurences in the videos. 
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences in the videos. 
 
 ```{r message=FALSE, warning=FALSE, error=FALSE}
 sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
-  reduce(., `rbind`) %>%
-  as.tibble() %>%
-  gather() %>%
+  map_dfr(~ as_tibble(.)) %>%
   mutate(valClean = trimws(value), # match same tags (except spaces added)
          valClean = ifelse(str_detect(valClean, fixed("Info", ignore_case = TRUE)), "Info Wars", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Alex Jones", ignore_case = TRUE)), "Alex Jones", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
-         valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean)) %>% 
-  filter(valClean != "0") # videos with zero tags got this label
+         valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("truth", ignore_case = TRUE)), "Truth", valClean)) 
 
 tagTally <- sepTags %>%
   count(valClean, sort = TRUE) %>%
@@ -314,19 +312,17 @@ ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Are the popular tags for all Alex Jones videos the same ones used for mainstream-media related videos? By examing the most widely-used tags on the subset videos related to mainstream media, I find striking distinctions between the two groups. 
+Are the popular tags for all Alex Jones videos the same ones used for mainstream-media related videos? By examing the most widely-used tags on the subset videos related to mainstream media, I discover distinctions between the two groups. 
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE, error=FALSE}
 sepTags <- as.list(strsplit(ms_dat$tags, ",")) %>%
-  reduce(., `rbind`) %>%
-  as.tibble() %>%
-  gather() %>%
-  mutate(valClean = trimws(value), # match same tags (except spaces added)
+   map_dfr(~ as_tibble(.)) %>%
+   mutate(valClean = trimws(value), # match same tags (except spaces added)
          valClean = ifelse(str_detect(valClean, fixed("Info", ignore_case = TRUE)), "Info Wars", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Alex Jones", ignore_case = TRUE)), "Alex Jones", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
-         valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean)) %>% 
-  filter(valClean != "0") # videos with zero tags got this label
+         valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean),
+         valClean = ifelse(str_detect(valClean, fixed("truth", ignore_case = TRUE)), "Truth", valClean)) 
 
 tagTally_ms <- sepTags %>%
   count(valClean, sort = TRUE) %>%
@@ -340,9 +336,7 @@ ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-There is expected overlap between the most popular tags in the mainstream-video subset and all videos: "Alex Jones", "Info Wars", and "Alternative Media" all appear in the top six most widely-used tags in both groups. In the mainstream media-related subset, "Hillary Clinton", "Truth", and "9/11" feature more prominently as tags. 
-
-Because the same video often accounts for multiple tags, we cannot compare the raw number of tags to contrast the two groups.  
+To understand better whether there are meaninful differences in tags used for videos related to mainstream media, for the rest of this section I differentiate between mutually exlusive groups: tags for videos related to mainstream media, and tags for videos unrelated to mainstream media. I subtract the tag counts of `ms_dat` from the `full_dat` group, because I previously was treating the two groups as inclusive. 
 
 ```{r}
 merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean")
