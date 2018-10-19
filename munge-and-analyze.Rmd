@@ -339,9 +339,15 @@ ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
 To understand better whether there are meaninful differences in tags used for videos related to mainstream media, for the rest of this section I differentiate between mutually exlusive groups: tags for videos related to mainstream media, and tags for videos unrelated to mainstream media. I subtract the tag counts of `ms_dat` from the `full_dat` group, because I previously was treating the two groups as inclusive. 
 
 ```{r}
-merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean")
+merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean") %>%
+rename(n.full = n.x, n.ms = n.y) %>%
+mutate(n.nonms = n.full - n.ms,
+		sum.ms = sum(n.ms, na.rm = TRUE),
+		sum.nonms = sum(n.nonms, na.rm = TRUE),
+		prop.ms = n.ms/sum.ms,
+		prop.nonms = n.nonms/sum.nonms)
 ```
-
+To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
 
 ### Proportion of likes/dislikes to views
 
