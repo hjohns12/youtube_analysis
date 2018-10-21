@@ -277,9 +277,14 @@ cat_full_dat <- full_dat %>%
          main_stream_title = str_detect(title, regex(paste0("(?i)", pattern))),
          main_stream_tags = str_detect(tags, regex(paste0("(?i)", pattern)))) %>%
   mutate(main_stream = ifelse((main_stream_desc | main_stream_tags | main_stream_title), "Mainstream-related videos", "Non mainstream-related videos"),
+         ms = ifelse(main_stream == "Mainstream-related videos", 1, 0), 
          Likes = likeCount/viewCount,
          Dislikes = dislikeCount/viewCount,
-         Comments = commentCount/viewCount)
+         Comments = commentCount/viewCount,
+         nTags = str_count(tags, ",") + 1, # number of tags: number of commas + 1
+         friendlyPublished = parse_date_time(cat_full_dat$publishedAt, orders = "Ymd HMS"),
+         datePulled = parse_date_time("2018-05-24", orders = "Ymd"),
+         time_available = (datePulled - friendlyPublished), units = "days") 
 
 ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_stream)) + 
  geom_dotplot(stackdir = "center", stackratio = .2, alpha = .1,
@@ -293,7 +298,21 @@ ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_
         legend.title=element_blank())
 ```
 
-From the plot above, we see that videos published about the mainstream media were concentrated between December 2016 and August 2017. 
+From the plot above, we see that videos published about the mainstream media were concentrated between December 2016 and August 2017. In the plot below, the x-axis represents the number of days each video was online from its time of publication and the date that I scraped it (May 24 2018).
+
+```{r fig.align="center", warnings = FALSE, message=FALSE, error=FALSE}
+ggplot(cat_full_dat) +
+  geom_density(aes(x=time_available, y=..scaled.., fill = main_stream), alpha = 0.5) +
+  labs(x = "Days available online",
+       y = "Scaled density",
+       title = "") +
+  theme(legend.position = "bottom", legend.direction = "horizontal") +
+  scale_fill_discrete("")
+```
+
+The long right tail on the pink hill, representing mainstream media-related videos, confirms that few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018). 
+
+Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. In the future, it would be interesting to map major political, economic, and social events that coincided with the uptick in videos related to the mainstream media. 
 
 ## Video Tags
 
@@ -370,7 +389,6 @@ var_tag_comps <- merged_tags %>%
 ```
 
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
-
 ```{r all_tag_compare_fig, fig.align="center", warning=FALSE}
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
@@ -395,9 +413,9 @@ ggplot(var_tag_comps, aes(reorder(valClean, -proportion), proportion, color = ty
 
 By comparing the two classes of videos, the data reveals that the tags "Info Wars", "Alternative Media", "Alex Jones", "War", "Truth", and "News Wars" are more often associated with non mainstream media-related videos. Tags including "Elections", "Fake", "Hack", "Lies", "MSM", "NSA", "Snowden", and "Wikileaks" are more often associated with mainstream media-related videos. 
 
-### Proportion of likes/dislikes to views
+## Proportion of likes/dislikes to views
 
-The summary tables above warrant an exploratory comparison of viewer engagement. With the data available, we quantify viewer engagement with the proportion of likes/dislikes to views. A higher proportion of dis/likes to views suggests increased audience engagement and responsiveness. I first reshape the data to facilitate such a comparison, and then present results in a density plot.
+With the data available, I define viewer engagement for each video as the proportion of likes/dislikes to views. A higher proportion of dis/likes to views suggests increased audience engagement and responsiveness. I first reshape the data to facilitate such a comparison, and then present results in a density plot.
 
 ```{r add_props, fig.align="center"}
 toPlot <- cat_full_dat %>%
@@ -417,6 +435,33 @@ ggplot(toPlot) +
 The y-axis on this plot is a scaled density because the sample sizes are different for videos with mainstream-tags and those without. The x-axis shows the proportion of the engagement type (comments, dislikes, likes) to the number of views for each video. The shading indicates whether the video had a mainstream tag or not.
 
 The pink tail to the right within the "Likes" cell suggests that viewer engagement is higher for videos with mainstream tags than those without. This illuminates a potential motivation of mainstream media-related content creation. Previous research suggests that malicious actors creating and spreading disinformation, propaganda, and/or fake news are usually motivated by one or more of the following categories: ideology, money, and/or status or attention [0-1]. The differential in likes and views suggests that videos related to mainstream media garner more attention than the average video from the Alex Jones channel.   
+
+## Analysis
+
+Question: Do videos related to mainstream media attract more attention than those unrelated to the mainstream media?
+
+- Videos that were published earlier are associated with a higher number of views
+  + I collected the data on Thursday, May 24, 2018. So length_available is the difference between this data and the date the videos was published (measured in number of days)
+- A higher number of tags are associated with more views (??is this true??)
+
+viewCount ~ factor(ms) + length_available + nTags
+commentCount ~ factor(ms) + length_available + nTags
+dislikeCount ~ factor(ms) + length_available + nTags
+likeCount ~ factor(ms) + length_available + nTags
+
+
+```{r analysis}
+covars <- c("factor(ms)",
+            "length_available",
+            "nTags")
+covar_formula <- paste0(covars, sep = " + ", collapse = "")
+
+outcomes <- c("viewCount", "commentCount", "dislikeCount", "likeCount")
+
+
+```
+
+
 
 # Discussion
 
