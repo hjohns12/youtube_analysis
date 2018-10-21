@@ -1,9 +1,16 @@
 ---
-title: 'Features of Far-right Influences on YouTube'
+title: 'Mainstream Media Discourse by Far Right Influences on YouTube'
 author: "Hope Johnson <br>"
 date: "April 2018"
 output: github_document
 ---
+
+# TO DO 
+
+- set all fig.width and fig.height options to something adequately large
+
+- make a thesis statement, prove/disprove it, and restate it a few times
+
 
 ```{r libraries, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -18,20 +25,22 @@ library(skimr)
 options(width = 120)
 #skim_with(numeric = funs, append = FALSE)
 skim_with(numeric = list(hist = NULL))
-# just a late-night thought for later but HEY this github_document output shit is annoying so just knit to an html and keep the md for later.... because seriously i think an html will do the trick
+# just a late-night thought for later but HEY why not just knit to an html and keep the md for later.... because seriously i think an html will do the trick
 ```
 
-# Opening
+# Introduction
 
-This work was created to support the Media Manipulation Initiative (MMI) at Data & Society. The goal of the the Media Manipulation Initiative is to examine how different groups use the participatory culture of the internet to turn the strengths of a free society into vulnerabilities, ultimately threatening expressive freedoms and civil rights. For this task, reserachers at the Media Manipulation Initiative are interested in how YouTube influences are attacking the mainstream media. One of the most active influencers is Alex Jones, and his media network InfoWars. By taking a deep dive into Alex Jones' YouTube videos, the research team will learn how discourse related to the mainstream media differs from other content uploaded by Alex Jones.
+This work was created to support the Media Manipulation Initiative (MMI) at Data & Society. The goal of the the Media Manipulation Initiative is to examine how different groups use the participatory culture of the internet to turn the strengths of a free society into vulnerabilities, ultimately threatening expressive freedoms and civil rights. For this task, researchers at the Media Manipulation Initiative are interested in how YouTube influences are attacking the mainstream media. One of the most active influencers is Alex Jones and his media network InfoWars. By taking a deep dive into Alex Jones' YouTube videos, the research team will learn how discourse related to the mainstream media differs from other content uploaded by Alex Jones.
+
+My job is to explore video data from Alex Jones' YouTube account. I extract information from the video data, sorting the videos into two groups: (1) videos related to the mainstream media, and (2) videos related to other topics (i.e. technology, foreign affairs conspiracies, etc.). By summarizing, visualizing, and analyzing the video data, I glean what makes a video related to the mainstream media unique. 
 
 What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
 
 *add outcomes*
 
-# Munge data
+# Scrape and Clean YouTube Data
 
-I am targeting the title, description, tags, number of likes, number of dislikes, and number of views for each video uploaded to the Alex Jones YouTube channel during the specified three-year time period. The video statistics data arrives as a .json file, which for a single video appears like the chunk below.
+From the YouTube API, I scrape the title, description, tags, number of likes, number of dislikes, and number of views for each video uploaded to the Alex Jones YouTube channel during the specified three-year time period. The video statistics data arrives as a .json file, which for a single video appears like the chunk below.
 
 ```{r, eval = FALSE}
  {
@@ -85,7 +94,7 @@ I am targeting the title, description, tags, number of likes, number of dislikes
 
 JSON stands for JavaScript Object Notation, and this file format is commonly used to store data on the web. For data analysis and visualization, JSON is not ideal. As an initial step, I write a number of helper functions to convert a nested list item into a dataframe. I want to build up a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) dataframe, where each variable has its own column and each video has its own row.
 
-If the code below means nothing to you, don't worry! I'm mostly keeping these helper functions here in order to remember what I did later on. The main takeaway is that data munging gets us from the nested, concave format shown above to a rectangular, tidy one for easy analysis.
+If the code below means nothing to you, don't worry. I'm mostly keeping these helper functions around in order to remember what I did later on. The main takeaway is that data munging gets us from the nested, concave format shown above to a rectangular, tidy one for easy analysis.
 
 ```{r helper_function}
 # For more on .json file flattening, see:
@@ -137,8 +146,7 @@ make_tidy <- function(item){
 clean_full_dat <- function(file){
   df <- fromJSON(file) %>%
   pull(items) %>%
-  lapply(make_tidy) %>%
-  bind_rows() %>%
+  map_dfr(make_tidy) %>%
   select(-(contains("thumbnails"))) %>%
   rename_(.dots = setNames(names(.),
                            gsub("snippet.","", names(.)))) %>%
@@ -157,7 +165,7 @@ clean_full_dat <- function(file){
 }
 ```
 
-GitHub doesn't like it when users store data within a repository. If you would like the raw json and/or tidy data rather than running the code provided, please get in touch with me via email.
+GitHub doesn't like it when users store data within a repository. If you would like the raw .json or tidy data rather than running the code provided, please get in touch with me via email.
 
 ```{r convert_dat, warning=FALSE, error=FALSE, message=FALSE, eval=FALSE}
 full_dat <- clean_full_dat("../data/vid_details.json")
@@ -165,14 +173,15 @@ full_dat <- clean_full_dat("../data/vid_details.json")
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
-full_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata.csv"))
+#full_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata.csv"))
+full_dat <- read_csv(file.path("~","Projects", "youtube_analysis", "data", "video_metadata.csv"))
 ```
 
 `full_dat` contains video titles, viewer statistics, and other details for all the videos uploaded to the Alex Jones channel between between January 1st, 2015 and May 4th, 2018. Each row in the dataset represents a single video, and we observe `r nrow(full_dat)` videos in total. Each video has `r length(full_dat)` variables of interest (i.e. features, covariates, or inputs) associated with it. 
 
 ## Filter to media manipulation-related videos
 
-The reserach team is interested in gathering insights from (1) the full collection of videos, and (2) a subset of videos with tags identified as relevant to discourse against mainstream media.
+The research team is interested in gathering insights from (1) the full collection of videos, and (2) a subset of videos with tags identified as relevant to discourse against mainstream media.
 
 To create a dataset with only the words identified by researchers as relevant, I perform a search of the following attributes of each video: tags, description, and title. If any of the relevant terms show up in any of those three items, I save the video to a secondary dataframe, `ms_dat`. Note that any escape characters attached to relevant_terms (e.g., "buzzfeed/n", indicating a new paragraph) will still be found in the search function.
 
@@ -201,11 +210,7 @@ mainstream_filter <- function(data, feature) {
 subset_by_tags <- mainstream_filter(full_dat, "tags")
 subset_by_description <- mainstream_filter(full_dat, "description")
 subset_by_title <- mainstream_filter(full_dat, "title")
-```
 
-I stack three dataframes on top of each other. These three dataframes represent the results with keywords in (1) the video description, (2) the video tags, and (3) the video title. 
-
-```{r make_ms_dat, eval=FALSE, warning=FALSE, error=FALSE}
 ms_dat <- subset_by_description %>%
   bind_rows(subset_by_tags) %>%
   bind_rows(subset_by_title) %>%
@@ -214,12 +219,16 @@ ms_dat <- subset_by_description %>%
 ```
 
 ```{r, echo=FALSE, warning = FALSE, error=FALSE, message = FALSE}
-ms_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata_mainstream_media.csv"))
+#ms_dat <- read_csv(file.path("C:", "Users", "hjohnson", "Root", "Internal", "youtube_results", "data", "video_metadata_mainstream_media.csv"))
+ms_dat <- read_csv(file.path("~", "Projects", "youtube_analysis", "data", "video_metadata_mainstream_media.csv"))
+
 ```
 
 # Exploration and Analysis
 
 I poke around with variables of interest from both the full dataset and the data filtered down to only those videos related to the mainstream media. Some characteristics may vary between the two datasets; I aim to draw out what they are.
+
+*restate thesis here*
 
 ## Summary statistics
 
@@ -238,10 +247,10 @@ skim(ms_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount, ye
 
 When I compare the two tables, I immediately notice a few things:
 
-1. `favoriteCount` doesn't provide any information.
-2. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
-3. The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
-4. The median date published for the full dataset is December 4th, 2017. The median date published for the mainstream subset is August 10th, 2017. This suggests that the temporal pattern of videos differs between the two datasets. I'll explore this point first in the section below. 
+1. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
+2. The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
+3. The median date published for the full dataset is December 4th, 2017. The median date published for the mainstream subset is August 10th, 2017. This suggests that the temporal pattern of videos differs between the two datasets. I'll explore this point first in the section below. 
+4. `favoriteCount` doesn't provide any information.
 
 ## Date Published
 
@@ -288,7 +297,7 @@ From the plot above, we see that videos published about the mainstream media wer
 
 ## Video Tags
 
-Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences in the videos. 
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences. 
 
 ```{r make_all_tag_count_df, message=FALSE, warning=FALSE, error=FALSE}
 sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
@@ -310,7 +319,7 @@ tagTally <- sepTags %>%
 ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = "black"))
 ```
 
 Are the popular tags for all Alex Jones videos the same ones used for mainstream-media related videos? By examing the most widely-used tags on the subset videos related to mainstream media, I discover distinctions between the two groups. 
@@ -331,11 +340,11 @@ tagTally_ms <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r ms_tag_count_plot, echo = FALSE, fig.align="center"}
+```{r ms_tag_count_plot, echo = FALSE, fig.align="center", fig.height=8, fig.width=15}
 ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "", y = "# of tag occurences", title = "Video Tag Statistics", subtitle = "Mainstream-media related videos") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, color = "black"))
 ```
 
 To understand better whether there are meaninful differences in tags used for videos related to mainstream media, for the rest of this section I differentiate between mutually exlusive groups: tags for videos related to mainstream media, and tags for videos unrelated to mainstream media. I subtract the tag counts of `ms_dat` from the `full_dat` group. 
@@ -359,9 +368,10 @@ var_tag_comps <- merged_tags %>%
 	select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
 	gather(type, proportion, -valClean)
 ```
+
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
 
-```{r all_tag_compare_fig, fig.align="center"}
+```{r all_tag_compare_fig, fig.align="center", warning=FALSE}
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
   labs(x = "Tag", y = "% of tag uses", title = "Vieo Tag Comparison") + 
@@ -383,7 +393,7 @@ ggplot(var_tag_comps, aes(reorder(valClean, -proportion), proportion, color = ty
         legend.title=element_blank())
 ```
 
-By comparing the two classes of videos, the data reveals that the tags "Info Wars", "Alternative Media", "Alex Jones", "War", "Truth", and "News Wars" are more often associated with non mainstream media-related videos. Tags including "Elections", "Fake", "Hack", "Lies", "MSM", "NSA", "Snowden", and "Wikileaks" are more often assciated with mainstream media-related videos. 
+By comparing the two classes of videos, the data reveals that the tags "Info Wars", "Alternative Media", "Alex Jones", "War", "Truth", and "News Wars" are more often associated with non mainstream media-related videos. Tags including "Elections", "Fake", "Hack", "Lies", "MSM", "NSA", "Snowden", and "Wikileaks" are more often associated with mainstream media-related videos. 
 
 ### Proportion of likes/dislikes to views
 
