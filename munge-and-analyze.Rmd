@@ -3,8 +3,8 @@ title: 'Mainstream Media Discourse by Far Right Influences on YouTube'
 author: "Hope Johnson <br>"
 date: "May 2018"
 output: github_document
-fig_width: 10
-fig_height: 6
+fig_width: 15
+fig_height: 10
 ---
 
 ```{r libraries, message=FALSE, warning=FALSE}
@@ -32,11 +32,9 @@ My job is to explore video data from Alex Jones' YouTube account. I extract info
 
 What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
 
-*add outcomes*
+I find that Alex Jones' videos related to the mainstream media garner more attention from viewers than videos unrelated to the mainstream media. They are also more often associated with conspiratorial tags such as "fake", "lies", and "hacked". These findings supply reproducible, quantitative evidence in support of past research conducted at Data & Society. 
 
-*view this analysis as a way to detect patterns and heed warnings for future flares in far-right extremism on YouTube*
-^^ videos that are nominally about 
-obligation to pay attention to the political crises reflected in this video content 
+In the first section on scraping and cleaning data, I provide a dispatch for how to recognize videos nominally concerning other topics, but that actually relate to the mainstream media based on video tags and description. In the next section, I direct attention to the political and social crises reflected in the data with my focus on the temporality of the mainstream media-related videos. In the final section, I perform a statistical analysis of the impact of mainstream media-related content on viewer engagement. I conclude with a discussion of results and areas for future data work.
 
 # Scrape and Clean YouTube Data
 
@@ -226,23 +224,21 @@ ms_dat <- read_csv(file.path("~", "Projects", "youtube_analysis", "data", "video
 
 # Exploration and Analysis
 
-I poke around with variables of interest from both the full dataset and the data filtered down to only those videos related to the mainstream media. Some characteristics may vary between the two datasets; I aim to draw out what they are.
-
-*restate thesis here*
+I poke around with variables of interest from both the full dataset and the data filtered down to only those videos related to the mainstream media. I aim to draw out what differentiates a video related to the mainstream media from the others in the dataset. Specially, I want to uncover if a video related to the mainstream media was on average more popular, more commented on, and/or assigned a greater number of tags than a video unrelated to the mainstream media. 
 
 ## Summary statistics
 
 Below are summary statistics for numeric variables of the full dataset.
 
 ```{r full_dat summary statistics, results='asis', echo = FALSE}
-skim(full_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount, year) %>%
+skim(full_dat, commentCount, dislikeCount, likeCount, viewCount, year) %>%
   skimr::kable(caption = "Summary statistics for all videos", format = "markdown")
 ```
 
 In contrast, the table below provides summary statistics for videos with **mainstream-media tags**.
 
 ```{r summarize, results='asis', echo = FALSE}
-skim(ms_dat, commentCount, dislikeCount, favoriteCount, likeCount, viewCount, year) %>% skimr::kable(caption = "Summary statistics for mainstream-related video subset")
+skim(ms_dat, commentCount, dislikeCount, likeCount, viewCount, year) %>% skimr::kable(caption = "Summary statistics for mainstream-related video subset")
 ```
 
 When I compare the two tables, I immediately notice a few things:
@@ -250,7 +246,6 @@ When I compare the two tables, I immediately notice a few things:
 1. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
 2. The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
 3. The median date published for the full dataset is December 4th, 2017. The median date published for the mainstream subset is August 10th, 2017. This suggests that the temporal pattern of videos differs between the two datasets. I'll explore this point first in the section below. 
-4. The variable `favoriteCount` doesn't contain any information.
 
 ## Date Published
 
@@ -336,7 +331,7 @@ tagTally <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r count_tags_all_vids_plot, fig.align="center"}
+```{r count_tags_all_vids_plot, fig.align="center", fig.width=20, fig.width = 15}
 ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
@@ -361,7 +356,7 @@ tagTally_ms <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r ms_tag_count_plot, echo = FALSE, fig.align="center", fig.height=8, fig.width=15}
+```{r ms_tag_count_plot, echo = FALSE, fig.align="center", fig.width=20, fig.width = 15}
 ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "", y = "# of tag occurences", title = "Video Tag Statistics", subtitle = "Mainstream-media related videos") + 
@@ -387,7 +382,7 @@ all_tag_comps <- merged_tags %>%
 
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
 
-```{r all_tag_compare_fig, fig.align="center", warning=FALSE}
+```{r all_tag_compare_fig, fig.align="center", warning=FALSE, fig.width=20, fig.width = 15}
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
   labs(x = "Tag", y = "% of tag uses", title = "Vieo Tag Comparison") + 
@@ -443,7 +438,7 @@ The pink tail to the right within the "Likes" cell suggests that viewer engageme
 
 Using information from the data exploration, I move to analysis to answer one last, remaining question: **Do videos related to mainstream media attract more attention than those unrelated to the mainstream media?**
 
-I estimate a linear regressions to answer this question, controlling for a number of variables that I found earlier are associated with potential outcome variables. These include the number of days that each video was available online for viewing, and the number of tags associated with each video. I test a few different outcome variables: the number of video likes, the number of comments for each video, and the number of dislikes. I control for the number of views in each video as a baseline or offset.
+I estimate a linear regressions to answer this question, controlling for a number of variables that I found earlier are associated with potential outcome variables. These include the number of days that each video was available online for viewing, and the number of tags associated with each video. I test a few different outcome variables: the number of video likes, the number of comments for each video, and the number of dislikes. I control for the number of views in each video as the baseline/offset.
 
 In math, I fit the following model: 
 
@@ -493,9 +488,9 @@ Another interesting finding to emerge relates to the signs on the coefficients f
 
 # Discussion
 
-Add major takeaways here
+I find that Alex Jones' videos related to the mainstream media garner more attention from viewers than videos unrelated to the mainstream media. After regressing the impact of mainstream media-related content on the number of likes, I found that a video with a mainstream media-related title, description, and/or tags is associated with 1,600 more likes its counterpart video unrelated to mainstream media. Similarly, the impact of a mainstream media-related content is significant and positively associated with the number of comments. Apart from tags that researchers at Data & Society identified as related to the mainstream media, this group of videos is uniquely tied to conspiratorial tags such as "fake", "lies", and "hacked". 
 
-In future work, I will implement an in-depth analysis of the `description` text for each video.
+In future work, an in-depth analysis of the `description` text for each video is warranted. There is much room for analysis of the network of videos suggested by YouTube, in particular in the domain of mainstream media-related videos. The conspirational nature of tags associated with mainstream media-related content may facilitate the linkage of more extreme conspirational content recommended to viewers as they continue watching YouTube. 
 
 # Closing
 
