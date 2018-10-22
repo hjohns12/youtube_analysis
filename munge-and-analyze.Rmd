@@ -1,16 +1,11 @@
 ---
 title: 'Mainstream Media Discourse by Far Right Influences on YouTube'
 author: "Hope Johnson <br>"
-date: "April 2018"
+date: "May 2018"
 output: github_document
+fig_width: 10
+fig_height: 6
 ---
-
-# TO DO 
-
-- set all fig.width and fig.height options to something adequately large
-
-- make a thesis statement, prove/disprove it, and restate it a few times
-
 
 ```{r libraries, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -19,6 +14,7 @@ library(stringr)
 library(lubridate)
 library(magrittr)
 library(skimr)
+library(memisc)
 ```
 
 ```{r echo = FALSE}
@@ -37,6 +33,10 @@ My job is to explore video data from Alex Jones' YouTube account. I extract info
 What follows is the data-generating, cleaning and analytical process for a slice of content uploaded to the Alex Jones Channel (between January 1st, 2015 and May 4th, 2018). The data for this task was scraped using Google's Youtube Data API. The code to extract such data lives in `get-dat.py`, available in the code folder. The extracting function in `get-dat.py` would be useful to extract future data from the YouTube API. Other developers are welcome to utilize this code as a way to make YouTube video data more accessible for their research.
 
 *add outcomes*
+
+*view this analysis as a way to detect patterns and heed warnings for future flares in far-right extremism on YouTube*
+^^ videos that are nominally about 
+obligation to pay attention to the political crises reflected in this video content 
 
 # Scrape and Clean YouTube Data
 
@@ -250,7 +250,7 @@ When I compare the two tables, I immediately notice a few things:
 1. The average number of dislikes on the videos in our mainstream subset is higher than the average for all videos.  The average number of dislikes in the mainstream subset is 845, whereas the average number of dislikes for all videos is 639. That said, the standard deviation is also much greater for the mainstream subset than for the full dataset. This means that the number of likes are less tightly clustered around the mean for the videos in the mainstream subset relative to the full dataset.
 2. The same is true for number of likes, despite the fact that the average number of views for the videos in the mainstream subset is lower than for the overall videos. The average number of likes for the videos in the mainstream subset is 4854, whereas the average number of likes for all videos is 4508.
 3. The median date published for the full dataset is December 4th, 2017. The median date published for the mainstream subset is August 10th, 2017. This suggests that the temporal pattern of videos differs between the two datasets. I'll explore this point first in the section below. 
-4. `favoriteCount` doesn't provide any information.
+4. The variable `favoriteCount` doesn't contain any information.
 
 ## Date Published
 
@@ -269,7 +269,9 @@ ggplot(full_dat, aes(as.Date(publishedAt))) +
       subtitle = "January 2015 - May 2018")
 ```
 
-Are videos related to the mainstream media published closer to the end of the period that we are interested in? Do they surround the 2016 presidential election? 
+Are videos related to the mainstream media published closer to the end of the period of interest? Do they surround the 2016 presidential election? 
+
+To answer this question, I append the working dataset with a number of useful variables for future use. Most helpful of all is a binary indicator of whether or not each individual video is related to the mainstream media or not. Upon doing so, I re-create the graph above but with each video classified as pink or blue. Pink indicates that a video is related to the mainstream media based on keyterms in its description, title, or tags. Blue indicates that a video is unrelated to the mainstream media based on the same criteria.
 
 ```{r, fig.align="center"}
 cat_full_dat <- full_dat %>%
@@ -282,8 +284,8 @@ cat_full_dat <- full_dat %>%
          Dislikes = dislikeCount/viewCount,
          Comments = commentCount/viewCount,
          nTags = str_count(tags, ",") + 1, # number of tags: number of commas + 1
-         friendlyPublished = parse_date_time(cat_full_dat$publishedAt, orders = "Ymd HMS"),
-         datePulled = parse_date_time("2018-05-24", orders = "Ymd"),
+         friendlyPublished = parse_date_time(publishedAt, orders = "Ymd HMS"),
+         datePulled = parse_date_time("2018-05-24", orders = "Ymd"),         # HCJ scrape date
          time_available = (datePulled - friendlyPublished), units = "days") 
 
 ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_stream)) + 
@@ -298,21 +300,21 @@ ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_
         legend.title=element_blank())
 ```
 
-From the plot above, we see that videos published about the mainstream media were concentrated between December 2016 and August 2017. In the plot below, the x-axis represents the number of days each video was online from its time of publication and the date that I scraped it (May 24 2018).
+From the plot above, we see that videos published about the mainstream media were concentrated between December 2016 and August 2017. In the plot below, the x-axis represents the number of days each video was online from its time of publication and the date that I scraped it (May 24th, 2018).
 
 ```{r fig.align="center", warnings = FALSE, message=FALSE, error=FALSE}
 ggplot(cat_full_dat) +
   geom_density(aes(x=time_available, y=..scaled.., fill = main_stream), alpha = 0.5) +
   labs(x = "Days available online",
        y = "Scaled density",
-       title = "") +
+       title = "Time Intervals of Alex Jones' Videos on YouTube") +
   theme(legend.position = "bottom", legend.direction = "horizontal") +
   scale_fill_discrete("")
 ```
 
-The long right tail on the pink hill, representing mainstream media-related videos, confirms that few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018). 
+The thin, long tail extending to the right from the pink hill, representing mainstream media-related videos, confirms that few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018). 
 
-Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. In the future, it would be interesting to map major political, economic, and social events that coincided with the uptick in videos related to the mainstream media. 
+Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. Future work could include a mapping of major political, economic, and social events that coincided with the uptick in videos related to the mainstream media. 
 
 ## Video Tags
 
@@ -370,7 +372,7 @@ To understand better whether there are meaninful differences in tags used for vi
 
 ```{r make_tag_compare_dfs}
 merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean") %>%
-	rename(n.full = n.x, n.ms = n.y) %>%
+	dplyr::rename(n.full = n.x, n.ms = n.y) %>%
 	mutate(n.nonms = n.full - n.ms,
 		sum.ms = sum(n.ms, na.rm = TRUE),
 		sum.nonms = sum(n.nonms, na.rm = TRUE),
@@ -379,16 +381,12 @@ merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean") %>%
 		diff = abs(`Mainstream media-related videos` - `Non mainstream media-related videos`)) 
 		
 all_tag_comps <- merged_tags %>%
-		select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
+		dplyr::select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
 		gather(type, proportion, -valClean)
-		
-var_tag_comps <- merged_tags %>%
-	filter(diff > 0.02) %>%
-	select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
-	gather(type, proportion, -valClean)
 ```
 
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
+
 ```{r all_tag_compare_fig, fig.align="center", warning=FALSE}
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
@@ -402,6 +400,11 @@ ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
 It is difficult to visually infer tags from the plot with a sizable difference in usage across the two video types. In the plot below, I highlight tags with an absolute difference of more than two percent between the two groups. The make this more concrete, let's consider the most extreme example from the data: the "Info Wars" tag. This tag constitutes 3.7% of the tags in the mainstream media-related videos, and constitutes 12.5% of the tags in the non mainstream-media related videos. There is a difference of almost nine percentage points for this tag. 
 
 ```{r zoom_tag_compare_fig, fig.align="center"}
+var_tag_comps <- merged_tags %>%
+	dplyr::filter(diff > 0.02) %>%
+	dplyr::select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
+	gather(type, proportion, -valClean)
+
 ggplot(var_tag_comps, aes(reorder(valClean, -proportion), proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
   labs(x = "Tag", y = "% of tag uses", title = "Zoomed-In Tag Comparison") + 
@@ -419,7 +422,7 @@ With the data available, I define viewer engagement for each video as the propor
 
 ```{r add_props, fig.align="center"}
 toPlot <- cat_full_dat %>%
-  select(main_stream, Likes, Dislikes, Comments) %>%
+  dplyr::select(main_stream, Likes, Dislikes, Comments) %>%
   gather(var, prop, Likes:Comments)
 
 ggplot(toPlot) +
@@ -434,33 +437,58 @@ ggplot(toPlot) +
 
 The y-axis on this plot is a scaled density because the sample sizes are different for videos with mainstream-tags and those without. The x-axis shows the proportion of the engagement type (comments, dislikes, likes) to the number of views for each video. The shading indicates whether the video had a mainstream tag or not.
 
-The pink tail to the right within the "Likes" cell suggests that viewer engagement is higher for videos with mainstream tags than those without. This illuminates a potential motivation of mainstream media-related content creation. Previous research suggests that malicious actors creating and spreading disinformation, propaganda, and/or fake news are usually motivated by one or more of the following categories: ideology, money, and/or status or attention [0-1]. The differential in likes and views suggests that videos related to mainstream media garner more attention than the average video from the Alex Jones channel.   
+The pink tail to the right within the "Likes" cell suggests that viewer engagement is slighty higher for videos with mainstream tags than those without. This illuminates a potential motivation of mainstream media-related content creation. Previous research suggests that malicious actors creating and spreading disinformation, propaganda, and/or fake news are usually motivated by one or more of the following categories: ideology, money, and/or status or attention [0-1]. The differential in likes and views suggests that videos related to mainstream media garner more attention than the average video from the Alex Jones channel.   
 
 ## Analysis
 
-Question: Do videos related to mainstream media attract more attention than those unrelated to the mainstream media?
+Using information from the data exploration, I move to analysis to answer one last, remaining question: **Do videos related to mainstream media attract more attention than those unrelated to the mainstream media?**
 
-- Videos that were published earlier are associated with a higher number of views
-  + I collected the data on Thursday, May 24, 2018. So length_available is the difference between this data and the date the videos was published (measured in number of days)
-- A higher number of tags are associated with more views (??is this true??)
+I estimate a linear regressions to answer this question, controlling for a number of variables that I found earlier are associated with potential outcome variables. These include the number of days that each video was available online for viewing, and the number of tags associated with each video. I test a few different outcome variables: the number of video likes, the number of comments for each video, and the number of dislikes. I control for the number of views in each video as a baseline or offset.
 
-viewCount ~ factor(ms) + length_available + nTags
-commentCount ~ factor(ms) + length_available + nTags
-dislikeCount ~ factor(ms) + length_available + nTags
-likeCount ~ factor(ms) + length_available + nTags
+In math, I fit the following model: 
+
+$$ Y_i = \alpha + \beta x_{1} + \delta x_{2} + \nu x_3 + \phi x_4 + \epsilon_i.$$
+
+* The outcome $Y_{i}$ is the number of comments/views/likes for video $i$;
+* $\alpha$ represents an intercept term.
+* The coefficient $\beta$ describes the association between the "mainstream media-related" status and the outcome variable. The term $x_1 = 1$ indicates that a video was related to the mainstream media. 
+* The coefficient $\delta$ describes the association between access to the video online and the outcome variable. The term $x_{2}$ indicates the number of days a video had been publicly available for before May 2018.
+* The coefficient $\nu$ describes the association between video tags and the outcome variable. The term $x_{3}$ indicates the number of tags for video $i$.
+* The coefficient $\phi$ describes the association between the number of views and the outcome variable, acting as an offset. 
+* $\epsilon$ represents residual error. 
 
 
 ```{r analysis}
-covars <- c("factor(ms)",
-            "length_available",
-            "nTags")
-covar_formula <- paste0(covars, sep = " + ", collapse = "")
+# fit one model
+fit_youtube_model <- function(outcome, dat = cat_full_dat) {
+  covars_base <- c("factor(ms)", "time_available", "nTags")
+  if (outcome == "viewCount") {
+    covars <- covars_base
+  } else {
+    covars <- c(covars_base, "viewCount")
+  }
+  fmla <- paste(outcome, 
+                paste((covars), collapse = " + "),
+                sep = " ~ ")
+  fit <- lm(fmla, data = dat)
+}
 
-outcomes <- c("viewCount", "commentCount", "dislikeCount", "likeCount")
+lmLikes    <- fit_youtube_model(outcome = "likeCount")    # best fit
+lmComments <- fit_youtube_model(outcome = "commentCount") # good fit 
+lmDislikes <- fit_youtube_model(outcome = "dislikeCount") # mediocre fit
 
-
+reg_table <- mtable('Likes' = lmLikes,
+            'Comments' = lmComments,
+            'Dislikes' = lmDislikes,
+            summary.stats = c('R-squared','N'),
+            digits = 2,
+            show.eqnames = FALSE)
+reg_table
 ```
 
+With each model fit, I see that all models fit reasonably well based on the R-squared goodness-of-fit statistic. In all models, the coefficient on the parameter "mainstream media-related" is positive, and in two models, is significant. In the regression with the number of likes as the outcome variable, a mainstream media-related video is associated with 1,583 more likes on average than a video unrelated to the mainstream media, holding all other covariates at their means. Similarly, a mainstream-media related video is associated with 840 more **comments** on average than a video unrelated to the mainstream media, holding all covariates at their means. 
+
+Another interesting finding to emerge relates to the signs on the coefficients for the term "time available". In all models, the coefficient on this parameter is negative. This means that controlling for the number of views, a video that has been on YouTube for fewer days is associated with garnering more engagement in the form of likes, comments, and dislikes. In the models with number of dis/likes as their outcomes, an additional day online is associated with 2.58 fewer likes and 1.17 fewer dislikes. In a separate model, an additional 3.8 days online is associated with one fewer comment, although this finding was not statistically significant. 
 
 
 # Discussion
