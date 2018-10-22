@@ -266,7 +266,7 @@ ggplot(full_dat, aes(as.Date(publishedAt))) +
 
 Are videos related to the mainstream media published closer to the end of the period of interest? Do they surround the 2016 presidential election? 
 
-To answer this question, I append the working dataset with a number of useful variables for future use. Most helpful of all is a binary indicator of whether or not each individual video is related to the mainstream media or not. Upon doing so, I re-create the graph above but with each video classified as pink or blue. Pink indicates that a video is related to the mainstream media based on keyterms in its description, title, or tags. Blue indicates that a video is unrelated to the mainstream media based on the same criteria.
+To answer this question, I append the working dataset with a number of useful variables for future use. One new variable is a binary indicator of whether or not each individual video is related to the mainstream media. Below, I re-create the graph above but with each video classified as pink or blue. Pink indicates that a video is related to the mainstream media based on keyterms in its description, title, or tags. Blue indicates that a video is unrelated to the mainstream media based on the same criteria.
 
 ```{r, fig.align="center"}
 cat_full_dat <- full_dat %>%
@@ -307,13 +307,13 @@ ggplot(cat_full_dat) +
   scale_fill_discrete("")
 ```
 
-The thin, long tail extending to the right from the pink hill, representing mainstream media-related videos, confirms that few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018). 
+The thin, long tail extending to the right from the pink hill, representing mainstream media-related videos, confirms that very few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018). 
 
-Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. Future work could include a mapping of major political, economic, and social events that coincided with the uptick in videos related to the mainstream media. 
+Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. In future work, I will map the major political, economic, and social events that coincided with the uptick in videos related to the mainstream media. 
 
 ## Video Tags
 
-Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences. 
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube search. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences. 
 
 ```{r make_all_tag_count_df, message=FALSE, warning=FALSE, error=FALSE}
 sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
@@ -331,7 +331,7 @@ tagTally <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r count_tags_all_vids_plot, fig.align="center", fig.width=20, fig.width = 15}
+```{r count_tags_all_vids_plot, fig.align="center", fig.width=20, fig.height = 10}
 ggplot(tagTally, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
@@ -356,7 +356,7 @@ tagTally_ms <- sepTags %>%
   filter(n > 5)
 ```
 
-```{r ms_tag_count_plot, echo = FALSE, fig.align="center", fig.width=20, fig.width = 15}
+```{r ms_tag_count_plot, echo = FALSE, fig.align="center", fig.width=20, fig.height = 10}
 ggplot(tagTally_ms, aes(reorder(valClean, -n), n)) +
   geom_bar(stat = "identity") + 
   labs(x = "", y = "# of tag occurences", title = "Video Tag Statistics", subtitle = "Mainstream-media related videos") + 
@@ -382,7 +382,7 @@ all_tag_comps <- merged_tags %>%
 
 To compare the popularity of each tag in the two groups, I divide the tag count by the total number of tags used in each group. 
 
-```{r all_tag_compare_fig, fig.align="center", warning=FALSE, fig.width=20, fig.width = 15}
+```{r all_tag_compare_fig, fig.align="center", warning=FALSE, fig.width=20, fig.height = 10}
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
   geom_bar(stat = "identity", position = "dodge") + 
   labs(x = "Tag", y = "% of tag uses", title = "Vieo Tag Comparison") + 
@@ -442,7 +442,7 @@ I estimate a linear regressions to answer this question, controlling for a numbe
 
 In math, I fit the following model: 
 
-$$ Y_i = \alpha + \beta x_{1} + \delta x_{2} + \nu x_3 + \phi x_4 + \epsilon_i.$$
+$$Y_i = \alpha + \beta x_{1} + \delta x_{2} + \nu x_3 + \phi x_4 + \epsilon_i.$$
 
 * The outcome $Y_{i}$ is the number of comments/views/likes for video $i$;
 * $\alpha$ represents an intercept term.
@@ -453,7 +453,7 @@ $$ Y_i = \alpha + \beta x_{1} + \delta x_{2} + \nu x_3 + \phi x_4 + \epsilon_i.$
 * $\epsilon$ represents residual error. 
 
 
-```{r analysis}
+```{r analysis, warning=FALSE}
 # fit one model
 fit_youtube_model <- function(outcome, dat = cat_full_dat) {
   covars_base <- c("factor(ms)", "time_available", "nTags")
@@ -478,6 +478,12 @@ reg_table <- mtable('Likes' = lmLikes,
             summary.stats = c('R-squared','N'),
             digits = 2,
             show.eqnames = FALSE)
+reg_table <- relabel(reg_table,
+                 "[(]Intercept[)]"="\\\\emph{Intercept}",
+                 `factor(ms)`="Mainstream media-related",
+                 time_available="Time published",
+                 nTags = "Number of tags",
+                 viewCount = "Number of views")
 reg_table
 ```
 
@@ -488,7 +494,7 @@ Another interesting finding to emerge relates to the signs on the coefficients f
 
 # Discussion
 
-I find that Alex Jones' videos related to the mainstream media garner more attention from viewers than videos unrelated to the mainstream media. After regressing the impact of mainstream media-related content on the number of likes, I found that a video with a mainstream media-related title, description, and/or tags is associated with 1,600 more likes its counterpart video unrelated to mainstream media. Similarly, the impact of a mainstream media-related content is significant and positively associated with the number of comments. Apart from tags that researchers at Data & Society identified as related to the mainstream media, this group of videos is uniquely tied to conspiratorial tags such as "fake", "lies", and "hacked". 
+Alex Jones' videos related to the mainstream media garner more attention from viewers than videos unrelated to the mainstream media. After regressing the impact of mainstream media-related content on the number of likes, I found that a video with a mainstream media-related title, description, and/or tags is associated with 1,600 more likes its counterpart video unrelated to mainstream media. Similarly, the impact of a mainstream media-related content is significant and positively associated with the number of comments. Apart from tags that researchers at Data & Society identified as related to the mainstream media, this group of videos is uniquely tied to conspiratorial tags such as "fake", "lies", and "hacked". 
 
 In future work, an in-depth analysis of the `description` text for each video is warranted. There is much room for analysis of the network of videos suggested by YouTube, in particular in the domain of mainstream media-related videos. The conspirational nature of tags associated with mainstream media-related content may facilitate the linkage of more extreme conspirational content recommended to viewers as they continue watching YouTube. 
 

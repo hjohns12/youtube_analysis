@@ -257,12 +257,12 @@ Although the publication date for the video data spans from the beginning of 201
 ``` r
 break.vec<-c(seq(from=as.Date("2015-01-08"), to=as.Date("2018-05-03"), by = "3 month"))
 
-ggplot(full_dat, aes(as.Date(publishedAt))) +
+ggplot(full_dat, aes(as.Date(publishedAt))) + 
  geom_dotplot(stackdir = "center", stackratio = .2, alpha = .3,
-              method = "histodot", binwidth = 40) +
+              method = "histodot", binwidth = 40) + 
  scale_x_date(date_labels = "%b %y",
               breaks = break.vec) +
- scale_y_continuous(breaks = NULL) +
+ scale_y_continuous(breaks = NULL) + 
  labs(x = "",  y = "", title = "Videos published by Alex Jones",
       subtitle = "January 2015 - May 2018")
 ```
@@ -271,7 +271,7 @@ ggplot(full_dat, aes(as.Date(publishedAt))) +
 
 Are videos related to the mainstream media published closer to the end of the period of interest? Do they surround the 2016 presidential election?
 
-To answer this question, I append the working dataset with a number of useful variables for future use. Most helpful of all is a binary indicator of whether or not each individual video is related to the mainstream media or not. Upon doing so, I re-create the graph above but with each video classified as pink or blue. Pink indicates that a video is related to the mainstream media based on keyterms in its description, title, or tags. Blue indicates that a video is unrelated to the mainstream media based on the same criteria.
+To answer this question, I append the working dataset with a number of useful variables for future use. One new variable is a binary indicator of whether or not each individual video is related to the mainstream media. Below, I re-create the graph above but with each video classified as pink or blue. Pink indicates that a video is related to the mainstream media based on keyterms in its description, title, or tags. Blue indicates that a video is unrelated to the mainstream media based on the same criteria.
 
 ``` r
 cat_full_dat <- full_dat %>%
@@ -279,23 +279,23 @@ cat_full_dat <- full_dat %>%
          main_stream_title = str_detect(title, regex(paste0("(?i)", pattern))),
          main_stream_tags = str_detect(tags, regex(paste0("(?i)", pattern)))) %>%
   mutate(main_stream = ifelse((main_stream_desc | main_stream_tags | main_stream_title), "Mainstream-related videos", "Non mainstream-related videos"),
-         ms = ifelse(main_stream == "Mainstream-related videos", 1, 0),
+         ms = ifelse(main_stream == "Mainstream-related videos", 1, 0), 
          Likes = likeCount/viewCount,
          Dislikes = dislikeCount/viewCount,
          Comments = commentCount/viewCount,
          nTags = str_count(tags, ",") + 1, # number of tags: number of commas + 1
          friendlyPublished = parse_date_time(publishedAt, orders = "Ymd HMS"),
          datePulled = parse_date_time("2018-05-24", orders = "Ymd"),         # HCJ scrape date
-         time_available = (datePulled - friendlyPublished), units = "days")
+         time_available = (datePulled - friendlyPublished), units = "days") 
 
-ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_stream)) +
+ggplot(cat_full_dat, aes(as.Date(publishedAt), color = main_stream, fill = main_stream)) + 
  geom_dotplot(stackdir = "center", stackratio = .2, alpha = .1,
-              method = "histodot", binwidth = 40) +
+              method = "histodot", binwidth = 40) + 
  scale_x_date(date_labels = "%b %y",
               breaks = break.vec) +
- scale_y_continuous(breaks = NULL) +
+ scale_y_continuous(breaks = NULL) + 
  labs(x = "",  y = "", title = "Mainstream media-related videos over time",
-      subtitle = "January 2015 - May 2018") +
+      subtitle = "January 2015 - May 2018") + 
   theme(legend.position="bottom",
         legend.title=element_blank())
 ```
@@ -316,14 +316,14 @@ ggplot(cat_full_dat) +
 
 <img src="munge-and-analyze_files/figure-markdown_github/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
 
-The thin, long tail extending to the right from the pink hill, representing mainstream media-related videos, confirms that few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018).
+The thin, long tail extending to the right from the pink hill, representing mainstream media-related videos, confirms that very few of the videos in this group were available for more than 600 days prior to May 2018. Videos related to mainstream media are most often available for 300 days -- circa August 2017. The distribution of days available for videos unrelated to the mainstream media are is bimodal: there is a low peak centered at 750 days (November 2016), and a high peak centered at 100 days (February 2018).
 
-Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. Future work could include a mapping of major political, economic, and social events that coincided with the uptick in videos related to the mainstream media.
+Because there is variation in the temporal distribution of the two video groups, in an analysis of video engagement, I will control for the time each video was available for viewing on YouTube. In future work, I will map the major political, economic, and social events that coincided with the uptick in videos related to the mainstream media.
 
 Video Tags
 ----------
 
-Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube serach. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences.
+Each video is tagged with a number of words and/or phrases by the uploader to optimize a YouTube search. There are 410 unique tags in these data, and the average video has 17 tags associated with it. The bar chart below shows the most widely used tags in the time period between 2015 and mid-2018. The top five most commonly used tags were "Info Wars", "Hillary Clinton", "Alternative Media", "Alex Jones", and "War". I only show tags with greater than 5 occurences.
 
 ``` r
 sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
@@ -334,7 +334,7 @@ sepTags <- as.list(strsplit(full_dat$tags, ",")) %>%
          valClean = ifelse(str_detect(valClean, fixed("Trump", ignore_case = TRUE)), "Donald Trump", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Donald", ignore_case = TRUE)), "Donald Trump", valClean),
          valClean = ifelse(str_detect(valClean, fixed("Hillary", ignore_case = TRUE)), "Hillary Clinton", valClean),
-         valClean = ifelse(str_detect(valClean, fixed("truth", ignore_case = TRUE)), "Truth", valClean))
+         valClean = ifelse(str_detect(valClean, fixed("truth", ignore_case = TRUE)), "Truth", valClean)) 
 
 tagTally <- sepTags %>%
   count(valClean, sort = TRUE) %>%
@@ -343,8 +343,8 @@ tagTally <- sepTags %>%
 
 ``` r
 ggplot(tagTally, aes(reorder(valClean, -n), n)) +
-  geom_bar(stat = "identity") +
-  labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") +
+  geom_bar(stat = "identity") + 
+  labs(x = "Tag", y = "# of tag occurences", title = "Video Tag Statistics") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = "black"))
 ```
 
@@ -364,8 +364,8 @@ merged_tags <- left_join(tagTally, tagTally_ms, by = "valClean") %>%
         sum.nonms = sum(n.nonms, na.rm = TRUE),
         `Mainstream media-related videos` = n.ms/sum.ms,            # this is a proportion
         `Non mainstream media-related videos` = n.nonms/sum.nonms,  # this is also a proportion        
-        diff = abs(`Mainstream media-related videos` - `Non mainstream media-related videos`))
-
+        diff = abs(`Mainstream media-related videos` - `Non mainstream media-related videos`)) 
+        
 all_tag_comps <- merged_tags %>%
         dplyr::select(valClean, `Mainstream media-related videos`, `Non mainstream media-related videos`) %>%
         gather(type, proportion, -valClean)
@@ -375,10 +375,10 @@ To compare the popularity of each tag in the two groups, I divide the tag count 
 
 ``` r
 ggplot(all_tag_comps, aes(valClean, proportion, color = type, fill = type)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "Tag", y = "% of tag uses", title = "Vieo Tag Comparison") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_y_continuous(labels = scales::percent) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  labs(x = "Tag", y = "% of tag uses", title = "Vieo Tag Comparison") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_y_continuous(labels = scales::percent) + 
   theme(legend.position="bottom",
         legend.title=element_blank())
 ```
@@ -394,10 +394,10 @@ var_tag_comps <- merged_tags %>%
     gather(type, proportion, -valClean)
 
 ggplot(var_tag_comps, aes(reorder(valClean, -proportion), proportion, color = type, fill = type)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(x = "Tag", y = "% of tag uses", title = "Zoomed-In Tag Comparison") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_y_continuous(labels = scales::percent) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  labs(x = "Tag", y = "% of tag uses", title = "Zoomed-In Tag Comparison") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_y_continuous(labels = scales::percent) + 
   theme(legend.position="bottom",
         legend.title=element_blank())
 ```
@@ -441,7 +441,7 @@ I estimate a linear regressions to answer this question, controlling for a numbe
 
 In math, I fit the following model:
 
-*Y*<sub>*i*</sub> = *α* + *β* *x*<sub>1</sub> + *δ* *x*<sub>2</sub> + *ν* *x*<sub>3</sub> + *ϕ* *x*<sub>4</sub> + *ϵ*<sub>*i*</sub>.
+*Y*<sub>*i*</sub> = *α* + *β**x*<sub>1</sub> + *δ**x*<sub>2</sub> + *ν**x*<sub>3</sub> + *ϕ**x*<sub>4</sub> + *ϵ*<sub>*i*</sub>.
 
 -   The outcome *Y*<sub>*i*</sub> is the number of comments/views/likes for video *i*;
 -   *α* represents an intercept term.
@@ -460,14 +460,14 @@ fit_youtube_model <- function(outcome, dat = cat_full_dat) {
   } else {
     covars <- c(covars_base, "viewCount")
   }
-  fmla <- paste(outcome,
+  fmla <- paste(outcome, 
                 paste((covars), collapse = " + "),
                 sep = " ~ ")
   fit <- lm(fmla, data = dat)
 }
 
 lmLikes    <- fit_youtube_model(outcome = "likeCount")    # best fit
-lmComments <- fit_youtube_model(outcome = "commentCount") # good fit
+lmComments <- fit_youtube_model(outcome = "commentCount") # good fit 
 lmDislikes <- fit_youtube_model(outcome = "dislikeCount") # mediocre fit
 
 reg_table <- mtable('Likes' = lmLikes,
@@ -476,28 +476,33 @@ reg_table <- mtable('Likes' = lmLikes,
             summary.stats = c('R-squared','N'),
             digits = 2,
             show.eqnames = FALSE)
+reg_table <- relabel(reg_table,
+                 "[(]Intercept[)]"="\\\\emph{Intercept}",
+                 `factor(ms)`="Mainstream media-related",
+                 time_available="Time published",
+                 nTags = "Number of tags",
+                 viewCount = "Number of views")
 reg_table
 ```
 
-    ##
+    ## 
     ## Calls:
     ## Likes: lm(formula = fmla, data = dat)
     ## Comments: lm(formula = fmla, data = dat)
     ## Dislikes: lm(formula = fmla, data = dat)
-    ##
+    ## 
     ## =======================================================
     ##                      Likes      Comments    Dislikes   
     ## -------------------------------------------------------
     ##   (Intercept)      1880.47***   509.19**   -117.65     
     ##                    (229.63)    (168.91)    (168.23)    
-    ##   Mainstream       1583.34***   840.49*     295.05     
-    ##   media-related    (443.26)    (326.04)    (324.73)  
-    ##  
-    ##   Time available     -2.58***    -0.26       -1.17*    
+    ##   factor(ms): 1/0  1583.34***   840.49*     295.05     
+    ##                    (443.26)    (326.04)    (324.73)    
+    ##   Time published     -2.58***    -0.26       -1.17*    
     ##                      (0.63)      (0.46)      (0.46)    
-    ##   # of tags          -32.57*     -55.76***     5.33     
+    ##   Number of tags    -32.57*     -55.76***     5.33     
     ##                     (14.66)     (10.79)     (10.74)    
-    ##   View count         0.02***     0.01***     0.00***  
+    ##   Number of views     0.02***     0.01***     0.00***  
     ##                      (0.00)      (0.00)      (0.00)    
     ## -------------------------------------------------------
     ##   R-squared           0.86        0.83        0.45     
@@ -511,7 +516,7 @@ Another interesting finding to emerge relates to the signs on the coefficients f
 Discussion
 ==========
 
-I find that Alex Jones' videos related to the mainstream media garner more attention from viewers than videos unrelated to the mainstream media. After regressing the impact of mainstream media-related content on the number of likes, I found that a video with a mainstream media-related title, description, and/or tags is associated with 1,600 more likes its counterpart video unrelated to mainstream media. Similarly, the impact of a mainstream media-related content is significant and positively associated with the number of comments. Apart from tags that researchers at Data & Society identified as related to the mainstream media, this group of videos is uniquely tied to conspiratorial tags such as "fake", "lies", and "hacked".
+Alex Jones' videos related to the mainstream media garner more attention from viewers than videos unrelated to the mainstream media. After regressing the impact of mainstream media-related content on the number of likes, I found that a video with a mainstream media-related title, description, and/or tags is associated with 1,600 more likes its counterpart video unrelated to mainstream media. Similarly, the impact of a mainstream media-related content is significant and positively associated with the number of comments. Apart from tags that researchers at Data & Society identified as related to the mainstream media, this group of videos is uniquely tied to conspiratorial tags such as "fake", "lies", and "hacked".
 
 In future work, an in-depth analysis of the `description` text for each video is warranted. There is much room for analysis of the network of videos suggested by YouTube, in particular in the domain of mainstream media-related videos. The conspirational nature of tags associated with mainstream media-related content may facilitate the linkage of more extreme conspirational content recommended to viewers as they continue watching YouTube.
 
