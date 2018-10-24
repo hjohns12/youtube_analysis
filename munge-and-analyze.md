@@ -484,30 +484,15 @@ reg_table <- relabel(reg_table,
                  viewCount = "Number of views")
 reg_table
 ```
-
-    ## 
-    ## Calls:
-    ## Likes: lm(formula = fmla, data = dat)
-    ## Comments: lm(formula = fmla, data = dat)
-    ## Dislikes: lm(formula = fmla, data = dat)
-    ## 
-    ## =======================================================
-    ##                      Likes      Comments    Dislikes   
-    ## -------------------------------------------------------
-    ##   (Intercept)      1880.47***   509.19**   -117.65     
-    ##                    (229.63)    (168.91)    (168.23)    
-    ##   factor(ms): 1/0  1583.34***   840.49*     295.05     
-    ##                    (443.26)    (326.04)    (324.73)    
-    ##   Time published     -2.58***    -0.26       -1.17*    
-    ##                      (0.63)      (0.46)      (0.46)    
-    ##   Number of tags    -32.57*     -55.76***     5.33     
-    ##                     (14.66)     (10.79)     (10.74)    
-    ##   Number of views     0.02***     0.01***     0.00***  
-    ##                      (0.00)      (0.00)      (0.00)    
-    ## -------------------------------------------------------
-    ##   R-squared           0.86        0.83        0.45     
-    ##   N                 506         506         506        
-    ## =======================================================
+|                          | Likes               | Comments          | Dislikes         |
+|--------------------------|---------------------|-------------------|------------------|
+| (Intercept)              | 1880.47*** (229.63) | 509.19** (168.91) | -117.65 (168.23) |
+| Mainstream media-related | 1583.34*** (443.26) | 840.49* (326.04)  | 295.05 (324.73)  |
+| Time published           | -2.58*** (0.63)     | -0.26 (0.46)      | -1.17* (0.46)    |
+| Number of tags           | -32.57* (14.66)     | -55.76*** (10.79) | 5.33 (10.74)     |
+| Number of views          | 0.02*** (0.00)      | 0.01*** (0.00)    | 0.00*** (0.00)   |
+| R-squared                | 0.86                | 0.83              | 0.45             |
+| N                        | 506                 | 506               | 506              |
 
 With each model fit, I see that all models fit reasonably well based on the R-squared goodness-of-fit statistic. In all models, the coefficient on the parameter "mainstream media-related" is positive, and in two models, is significant. In the regression with the number of likes as the outcome variable, a mainstream media-related video is associated with 1,583 more likes on average than a video unrelated to the mainstream media, holding all other covariates at their means. Similarly, a mainstream-media related video is associated with 840 more **comments** on average than a video unrelated to the mainstream media, holding all covariates at their means.
 
